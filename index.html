@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conexão Segura — O Jogo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Orbes desfocadas do plano de fundo (como no Figma do Conexão Segura) -->
+  <div class="bg-orbs" aria-hidden="true">
+    <span class="orb orb-1"></span><span class="orb orb-2"></span><span class="orb orb-3"></span>
+    <span class="orb orb-4"></span><span class="orb orb-5"></span><span class="orb orb-6"></span>
+    <span class="bg-grid"></span>
+  </div>
+  <main class="app-shell">
+
+    <header class="site-header">
+      <button class="wordmark" id="brandHome" aria-label="Voltar ao início">
+        <span class="brand-mark">🫧</span>
+        <span>CONEXÃO<br><strong>SEGURA</strong></span>
+      </button>
+      <div class="header-actions">
+        <button class="icon-btn" id="backBtn" title="Voltar ao início">←</button>
+        <button class="icon-btn" id="soundBtn" title="Ativar/desativar som">🔊</button>
+        <button class="icon-btn" id="narrateBtn" title="Ativar/desativar narração">🗣️</button>
+      </div>
+    </header>
+
+    <div id="app"></div>
+
+    <footer class="site-footer">
+      <span>CONEXÃO SEGURA © 2026</span>
+      <span>JOGUE, APRENDA, PROTEJA-SE ✦</span>
+    </footer>
+  </main>
+
+  <div id="playerModal" class="modal-backdrop hidden">
+    <div class="player-setup">
+      <button class="icon-btn modal-close" id="closeModal">×</button>
+      <span class="eyebrow">PREPARE-SE PARA JOGAR</span>
+      <h2>Quem vai <em>jogar?</em></h2>
+      <p>Escolha seu personagem e o nome que vai aparecer na partida.</p>
+
+      <form id="playerForm">
+        <fieldset>
+          <legend>SEU AVATAR</legend>
+          <div class="avatar-grid" id="avatarGrid"></div>
+        </fieldset>
+
+        <label for="nickname">SEU NICKNAME</label>
+        <input id="nickname" maxlength="20" minlength="2" placeholder="Como podemos te chamar?" autocomplete="off" required>
+        <div id="nameError" class="setup-error"></div>
+
+        <button class="game-btn full" type="submit">VAMOS JOGAR →</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
