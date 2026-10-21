@@ -1,0 +1,13 @@
+{
+  "name": "conexao-segura",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Jogo educativo Conexao Segura - front-end estatico + API serverless (Vercel) + PostgreSQL (Neon)",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "db:setup": "node scripts/setup-db.js"
+  },
+  "dependencies": {
+    "pg": "8.13.1"
+  }
+}
