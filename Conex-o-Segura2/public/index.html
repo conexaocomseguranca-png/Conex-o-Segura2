@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="shop.css">
   <link rel="stylesheet" href="additions.css">
+  <link rel="stylesheet" href="feedback.css">
   <meta name="description" content="Conexão Segura: jogue, aprenda e troque suas moedas por recompensas na loja.">
 </head>
 <body>
@@ -20,22 +21,39 @@
       </button>
       <div class="header-actions">
         <span class="header-wallet"><img src="assets/moeda.png" alt="Moedas"><strong id="walletBalance">0</strong></span>
-        <button class="icon-btn" id="backBtn" title="Voltar ao início" hidden>←</button>
-        <button class="icon-btn" id="soundBtn" title="Ativar/desativar som">🔊</button>
-        <button class="icon-btn" id="musicBtn" title="Silenciar música de fundo" aria-label="Silenciar música de fundo" aria-pressed="true">♫</button>
-        <div class="volume-wrap">
-          <button class="icon-btn" id="volumeBtn" title="Ajustar volume da música" aria-label="Ajustar volume da música" aria-expanded="false">🎚️</button>
-          <div class="volume-popover" id="volumePopover" hidden>
-            <label for="volumeSlider">VOLUME DA MÚSICA</label>
-            <div class="volume-row">
-              <span aria-hidden="true">🔈</span>
-              <input type="range" id="volumeSlider" min="0" max="100" step="1" value="50" aria-label="Volume da música">
-              <span aria-hidden="true">🔊</span>
+        <button class="icon-btn" id="backBtn" title="Voltar ao início" aria-label="Voltar ao início" hidden>←</button>
+        <!-- Ajustes: som, música, narração e modo calmo ficam juntos em um só lugar -->
+        <div class="settings-wrap">
+          <button class="icon-btn" id="settingsBtn" title="Ajustes" aria-label="Ajustes" aria-expanded="false" aria-controls="settingsPanel">⚙️</button>
+          <div class="settings-panel" id="settingsPanel" hidden>
+            <strong class="settings-title">Ajustes</strong>
+            <div class="setting-row">
+              <span class="setting-icon" aria-hidden="true">🔔</span>
+              <span class="setting-text"><b>Sons do jogo</b><small>Acerto, erro e moedas</small></span>
+              <button class="switch" id="soundBtn" role="switch" aria-checked="true" aria-label="Sons do jogo"></button>
             </div>
-            <output id="volumeValue" for="volumeSlider">50%</output>
+            <div class="setting-row">
+              <span class="setting-icon" aria-hidden="true">🎵</span>
+              <span class="setting-text"><b>Música</b><small>Trilha de fundo</small></span>
+              <button class="switch" id="musicBtn" role="switch" aria-checked="true" aria-label="Música de fundo"></button>
+            </div>
+            <div class="setting-row setting-volume">
+              <label for="volumeSlider">Volume da música</label>
+              <input type="range" id="volumeSlider" min="0" max="100" step="1" value="50">
+              <output id="volumeValue" for="volumeSlider">50%</output>
+            </div>
+            <div class="setting-row">
+              <span class="setting-icon" aria-hidden="true">🗣️</span>
+              <span class="setting-text"><b>Narração</b><small>Lê as cartas em voz alta</small></span>
+              <button class="switch" id="narrateBtn" role="switch" aria-checked="true" aria-label="Narração"></button>
+            </div>
+            <div class="setting-row">
+              <span class="setting-icon" aria-hidden="true">🌙</span>
+              <span class="setting-text"><b>Modo calmo</b><small>Menos movimento e brilho</small></span>
+              <button class="switch" id="calmBtn" role="switch" aria-checked="false" aria-label="Modo calmo"></button>
+            </div>
           </div>
         </div>
-        <button class="icon-btn" id="narrateBtn" title="Ativar/desativar narração">🗣️</button>
       </div>
     </header>
 
@@ -72,6 +90,7 @@
   <script src="database.js"></script>
   <script src="shop.js"></script>
   <script src="memory.js"></script>
+  <script src="mascote.js"></script>
   <script src="script.js"></script>
   <script src="music.js"></script>
 </body>
