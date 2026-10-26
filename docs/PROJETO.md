@@ -58,18 +58,18 @@ atividade de apoio.
 O visual é chamativo, como um jogo, mas foi organizado para ser **previsível e sem
 excesso de estímulos**:
 
-- **Um passo de cada vez.** A mascote **Bolhinha** fica acima da carta e diz sempre o
+- **Um passo de cada vez.** O personagem que a criança escolheu fica acima da carta e diz sempre o
   que fazer agora ("Toque na carta…", "Essa situação é segura ou perigosa?").
 - **Mesma estrutura em toda carta.** Barra de progresso, vidas, carta e os dois botões
   ficam sempre no mesmo lugar; o jogo só avança quando a criança aperta **Continuar**.
 - **Ícone + texto + cor.** As respostas nunca dependem só da cor: 🛡️ SEGURO e
   ⚠️ PERIGOSO, ✓ para acerto e ✗ para erro.
 - **Erro sem punição.** O painel de erro fala "Quase lá!", explica o motivo e a
-  mascote incentiva ("Tudo bem errar. Vamos aprender juntos!").
+  personagem incentiva ("Tudo bem errar. Vamos aprender juntos!").
 - **Sem luz piscando.** Nenhum efeito pisca a tela inteira; o combo usa um selo que
   desce do topo e brilhos suaves.
 - **Modo calmo** (em ⚙️ Ajustes): tira partículas, tremidas, brilhos pulsando e
-  mascote pulando, mantendo o jogo igual. Liga sozinho quando o sistema pede para
+  personagem pulando, mantendo o jogo igual. Liga sozinho quando o sistema pede para
   reduzir animações.
 - **Carta branca com letra grande** e alto contraste para facilitar a leitura.
 - Botões grandes (área de toque confortável) e presos no rodapé do celular.
@@ -82,8 +82,10 @@ excesso de estímulos**:
 
 ### Visual (referência: Duolingo)
 - Botões "3D" com degrau que afunda ao apertar, cores chapadas e cantos arredondados.
-- A resposta mostra primeiro um ícone animado sobre a carta e depois um **painel que
-  sobe do rodapé** com a explicação, como o "Continuar" do Duolingo.
+- A resposta mostra primeiro um ícone animado sobre a carta. Depois, no **centro da
+  tela**, uma barra se estica e abre um painel onde o **avatar do jogador explica** a
+  resposta: fazendo joinha 👍 quando acerta e com o dedo levantado ☝️ quando erra. A mão
+  usa o mesmo tom de pele do avatar escolhido.
 - Telas de fim de fase com quadros coloridos (moedas, vidas, melhor combo).
 
 ### Privacidade e segurança dos dados

@@ -39,10 +39,11 @@ O intuito, o público e as decisões que tomamos estão detalhados em
 ## Funcionalidades
 
 - **50 cartas** em 5 fases de dificuldade crescente e **7 vidas**
-- **Visual inspirado no Duolingo**: botões 3D, cores vivas e a mascote **Bolhinha**,
-  que guia a criança e reage a cada resposta
-- **Feedback animado**: ícone de acerto/erro sobre a carta e um painel que sobe do
-  rodapé explicando o porquê
+- **Visual inspirado no Duolingo**: botões 3D, cores vivas e o logo da árvore de
+  circuito; o **personagem escolhido pelo jogador** guia a criança e reage a cada resposta
+- **Feedback animado**: ícone de acerto/erro sobre a carta e um painel no centro da
+  tela em que o personagem explica o porquê, fazendo joinha 👍 (acerto) ou com o dedo
+  levantado ☝️ (erro)
 - **Combo de acertos seguidos** com cores, partículas e sons que evoluem
 - **Pensado para crianças autistas**: passos previsíveis, ícone + texto + cor,
   nada piscando e um **Modo calmo** em ⚙️ Ajustes

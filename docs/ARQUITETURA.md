@@ -28,10 +28,10 @@
 | `script.js` | Jogo de cartas (fases, vidas, feedback animado, combo), Corrida da Bolha, créditos e ranking |
 | `memory.js` | Memória Digital |
 | `shop.js` | Loja, inventário e itens equipados |
-| `mascote.js` | Desenho em SVG da mascote Bolhinha e seus humores (feliz, animada, triste, pensando) |
 | `music.js` | Música de fundo e volume (dentro do painel ⚙️ Ajustes) |
 | `database.js` | Comunicação com a API (fila de requisições e avisos de erro) |
-| `style.css` | Cores, botões 3D, mascote e telas (início, lição, resultados) |
+| `style.css` | Cores, botões 3D, personagem do jogador e telas (início, lição, resultados) |
+| `assets/logo.svg` | Logo do jogo (árvore de circuito), usado no cabeçalho, na tela inicial e no ícone da aba |
 | `feedback.css` | Animação de acerto/erro, painel de explicação, combo e Modo calmo |
 | `additions.css`, `shop.css`, `fonts.css` | Memória, painel de Ajustes, loja e fontes |
 
@@ -42,7 +42,8 @@
 3. O servidor compara com a resposta do banco, registra em `respostas` e, se acertou,
    credita as moedas em `carteiras` e no extrato `movimentacoes`.
 4. O front mostra o ícone de acerto ou erro sobre a carta, sobe o painel com a
-   explicação (com a Bolhinha reagindo) e atualiza vidas, moedas e combo. O jogo só
+   explicação no centro da tela (com o avatar do jogador fazendo joinha ou com o dedo
+   levantado) e atualiza vidas, moedas e combo. O jogo só
    segue quando o jogador aperta **Continuar**.
 
 ## Rotas da API
