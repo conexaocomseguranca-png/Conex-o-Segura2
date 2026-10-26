@@ -3,8 +3,9 @@
   const button = document.getElementById('musicBtn');
   let context, master, interval;
   let enabled = localStorage.getItem('cs-music') !== 'off';
-  const volBtn = document.getElementById('volumeBtn');
-  const volPop = document.getElementById('volumePopover');
+  // O volume fica dentro do painel de Ajustes, aberto pelo botão ⚙️
+  const volBtn = document.getElementById('settingsBtn');
+  const volPop = document.getElementById('settingsPanel');
   const volSlider = document.getElementById('volumeSlider');
   const volValue = document.getElementById('volumeValue');
   const saved = parseInt(localStorage.getItem('cs-music-volume'), 10);
@@ -15,11 +16,8 @@
   const melody = [76,0,79,83,79,0,76,74,72,0,76,79,76,0,72,74,74,0,77,81,77,0,74,72,71,0,74,79,74,0,71,74];
   const bass = [48,45,53,43];
   function update() {
-    button.textContent = enabled ? '♫' : '♪';
-    button.classList.toggle('off', !enabled);
-    button.setAttribute('aria-pressed', String(enabled));
+    button.setAttribute('aria-checked', String(enabled));
     button.title = enabled ? 'Silenciar música de fundo' : 'Ativar música de fundo';
-    button.setAttribute('aria-label', button.title);
   }
   function note(midi, at, duration, volume, type) {
     const oscillator = context.createOscillator();
@@ -72,7 +70,6 @@
     volSlider.value = volume;
     volSlider.style.setProperty('--fill', volume + '%');
     volValue.textContent = volume + '%';
-    volBtn.textContent = volume === 0 ? '🔇' : '🎚️';
     localStorage.setItem('cs-music-volume', String(volume));
     if (master) master.gain.setTargetAtTime(gainFor(volume), context.currentTime, .02);
   }
