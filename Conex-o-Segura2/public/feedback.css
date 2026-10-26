@@ -1,0 +1,175 @@
+/* =====================================================================
+   Feedback animado da resposta + combo de acertos seguidos
+   ===================================================================== */
+
+/* ---------- Cores do combo (mudam a cada nível) ---------- */
+.play-screen{--combo:var(--teal);--combo-2:var(--teal-2);--combo-lip:var(--teal-lip);--combo-glow:rgba(0,201,167,0)}
+.play-screen[data-tier="1"]{--combo:var(--teal);--combo-2:var(--teal-2);--combo-lip:var(--teal-lip);--combo-glow:rgba(0,201,167,.32)}
+.play-screen[data-tier="2"]{--combo:var(--gold);--combo-2:var(--yellow);--combo-lip:var(--gold-lip);--combo-glow:rgba(255,184,0,.36)}
+.play-screen[data-tier="3"]{--combo:var(--purple);--combo-2:var(--sky);--combo-lip:var(--purple-lip);--combo-glow:rgba(167,139,250,.42)}
+.play-screen[data-tier="4"]{--combo:var(--pink);--combo-2:var(--yellow);--combo-lip:var(--pink-lip);--combo-glow:rgba(255,107,157,.46)}
+
+/* ---------- Barra de combo ---------- */
+.combo-bar{display:flex;align-items:center;gap:12px;margin:0 0 6px;padding:8px 14px;border:2px solid var(--line);border-radius:var(--r-pill);background:var(--surface);transition:border-color .4s,box-shadow .4s}
+.combo-label{font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--muted)}
+.combo-meter{flex:1;display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.combo-meter i{height:10px;border-radius:var(--r-pill);background:var(--surface-2);transition:background .3s}
+.combo-meter i.goal{background:transparent;box-shadow:inset 0 0 0 2px var(--line-2)}
+.combo-meter i.on{background:var(--combo);box-shadow:inset 0 -3px 0 var(--combo-lip)}
+.combo-status{min-width:150px;text-align:right;font-family:var(--font-display);font-size:18px;font-weight:800;line-height:1;color:var(--combo-2);white-space:nowrap}
+.combo-status small{font-family:var(--font-sans);font-size:11px;letter-spacing:.8px;color:var(--muted)}
+.play-screen:not([data-tier="0"]) .combo-status small{color:var(--combo-2)}
+.play-screen:not([data-tier="0"]) .combo-bar{border-color:var(--combo);box-shadow:0 0 22px var(--combo-glow)}
+.play-screen[data-tier="4"] .combo-meter i.on{background:linear-gradient(90deg,var(--teal),var(--yellow),var(--pink),var(--purple),var(--teal));background-size:300% 100%;animation:comboRainbow 3s linear infinite}
+.combo-bar.bump .combo-status{animation:comboBump .5s cubic-bezier(.34,1.56,.64,1)}
+.combo-bar.broken{animation:comboBreak .5s ease-in-out}
+
+/* ---------- Mesa reage ao combo ---------- */
+.play-screen:not([data-tier="0"]) .game-table{
+  border-color:var(--combo);
+  background:radial-gradient(circle at 50% 50%,var(--combo-glow),transparent 65%),var(--bg-2);
+  box-shadow:0 0 0 1px var(--combo),0 0 40px var(--combo-glow);
+  animation:comboPulse 3s ease-in-out infinite}
+
+/* Faíscas subindo devagar pela mesa (a partir de "Pegando fogo") */
+.combo-embers{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.combo-embers i{position:absolute;bottom:-10px;width:6px;height:6px;border-radius:50%;background:var(--combo-2);opacity:0;animation:emberRise 3s linear infinite}
+.combo-embers i:nth-child(3n){width:4px;height:4px}
+.combo-embers i:nth-child(4n){width:8px;height:8px}
+
+/* Brilho suave nas bordas da tela (fixo, sem piscar) */
+.combo-vignette{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .8s;
+  background:radial-gradient(ellipse at center,transparent 55%,var(--combo-glow) 100%)}
+.play-screen[data-tier="2"] .combo-vignette{opacity:.5}
+.play-screen[data-tier="3"] .combo-vignette{opacity:.75}
+.play-screen[data-tier="4"] .combo-vignette{opacity:.9}
+
+/* Selo "NOVO COMBO" que desce do topo */
+.combo-toast{--c:var(--teal);--c-lip:var(--teal-lip);position:fixed;top:14px;left:50%;z-index:80;display:flex;align-items:center;gap:12px;padding:10px 22px 10px 12px;
+  border-radius:var(--r-pill);background:var(--c);color:var(--ink);box-shadow:0 5px 0 var(--c-lip),0 14px 30px rgba(0,0,0,.35);pointer-events:none;
+  font-family:var(--font-display);font-size:24px;font-weight:800;line-height:1;white-space:nowrap;transform:translateX(-50%);animation:toastDrop 2.2s cubic-bezier(.34,1.56,.64,1) forwards}
+.combo-toast small{display:block;font-family:var(--font-sans);font-size:11px;letter-spacing:1px;opacity:.75}
+.combo-toast-emoji{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.4);font-size:24px}
+.combo-toast[data-tier="2"]{--c:var(--gold);--c-lip:var(--gold-lip)}
+.combo-toast[data-tier="3"]{--c:var(--purple);--c-lip:var(--purple-lip)}
+.combo-toast[data-tier="4"]{--c:var(--pink);--c-lip:var(--pink-lip)}
+
+/* Bolhas do acerto ganham cor conforme o combo */
+.bubble-burst[data-tier="2"] i{border-color:var(--yellow)}
+.bubble-burst[data-tier="3"] i{border-color:var(--purple)}
+.bubble-burst[data-tier="4"] i{border-color:var(--pink)}
+.bubble-burst:not([data-tier="0"]) i{animation-duration:1.1s}
+
+/* ---------- Vidas e moedas reagem ---------- */
+.lives-chip.hit{animation:chipHit .5s ease-in-out}
+.coin-chip.gain{animation:chipGain .5s cubic-bezier(.34,1.56,.64,1)}
+.float-text{position:absolute;left:50%;top:-6px;font-family:var(--font-display);font-size:20px;font-weight:800;pointer-events:none;animation:floatUp 1s ease-out forwards}
+.float-text.plus{color:var(--yellow)}
+.float-text.minus{color:var(--coral)}
+
+/* ---------- 1ª etapa: ícone em cima da carta ---------- */
+.answer-fx{position:absolute;inset:0;z-index:5;display:grid;place-items:center;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,var(--fx-soft),rgba(15,27,46,.55) 70%);animation:fxFade .25s ease-out backwards}
+.fx-good{--fx:var(--combo,var(--teal));--fx-2:var(--combo-2,var(--teal-2));--fx-soft:rgba(0,201,167,.3)}
+.play-screen:not([data-tier="0"]) .fx-good{--fx-soft:var(--combo-glow)}
+.fx-bad{--fx:var(--coral);--fx-2:var(--coral-soft);--fx-soft:rgba(255,107,53,.28)}
+.fx-time{--fx:var(--gold);--fx-2:var(--yellow);--fx-soft:rgba(255,184,0,.26)}
+.fx-badge{position:relative;width:110px;height:110px;display:grid;place-items:center;animation:fxPop .6s cubic-bezier(.34,1.56,.64,1) backwards}
+.fx-bad .fx-badge,.fx-time .fx-badge{animation-name:fxPopBad;animation-duration:.8s}
+.fx-badge svg{position:relative;z-index:2;width:100%;height:100%;overflow:visible}
+.fx-ring{fill:var(--fx);stroke:#fff;stroke-width:3}
+.fx-mark{fill:none;stroke:#fff;stroke-width:5.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;animation:fxDraw .35s .25s ease-out backwards}
+.fx-mark-2{animation-delay:.4s}
+.fx-emoji{position:absolute;right:-14px;top:-10px;z-index:3;font-size:40px;line-height:1;transform:rotate(12deg);animation:fxSticker .5s .45s cubic-bezier(.34,1.56,.64,1) backwards}
+.fx-rays{position:absolute;inset:-60px;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(var(--fx-soft) 0 9deg,transparent 9deg 30deg);
+  -webkit-mask:radial-gradient(circle,#000 25%,transparent 68%);mask:radial-gradient(circle,#000 25%,transparent 68%);
+  animation:fxSpin 8s linear infinite}
+.fx-tier-up .fx-rays{inset:-90px;animation-duration:4s}
+.fx-sparks{position:absolute;inset:0;pointer-events:none}
+.fx-sparks i{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:50%;background:var(--fx-2);opacity:0;animation:fxSpark .75s var(--d,0s) ease-out forwards}
+.play-screen .game-table.fx-shake{animation:tableShake .45s .1s ease-in-out}
+.play-screen[data-tier="0"] .game-table.fx-glow{border-color:var(--teal)}
+
+/* ---------- 2ª etapa: painel que sobe do rodapé com a explicação ---------- */
+.answer-sheet{--s:var(--teal);--s-lip:var(--teal-lip);--s-bg:#123A35;--s-text:#8AF2DD;
+  position:fixed;left:0;right:0;bottom:0;z-index:70;padding:20px 20px calc(20px + env(safe-area-inset-bottom));
+  background:var(--s-bg);border-top:3px solid var(--s);box-shadow:0 -12px 40px rgba(0,0,0,.35);
+  animation:sheetOpen .8s .45s cubic-bezier(.22,1,.36,1) backwards}
+/* O painel de acerto muda de cor junto com o nível do combo */
+.answer-sheet[data-tier="2"]{--s:var(--gold);--s-lip:var(--gold-lip);--s-bg:#3A3118;--s-text:#FFE08A}
+.answer-sheet[data-tier="3"]{--s:var(--purple);--s-lip:var(--purple-lip);--s-bg:#2A2452;--s-text:#DCD0FF}
+.answer-sheet[data-tier="4"]{--s:var(--pink);--s-lip:var(--pink-lip);--s-bg:#3F1E35;--s-text:#FFC4DC}
+.sheet-bad{--s:var(--coral);--s-lip:var(--coral-lip);--s-bg:#3B2027;--s-text:#FFB59A}
+.sheet-time{--s:var(--gold);--s-lip:var(--gold-lip);--s-bg:#3A3018;--s-text:#FFE08A}
+.sheet-inner{width:min(100%,860px);margin:auto;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;animation:fxFade .35s .95s backwards}
+.sheet-mascot{width:88px}
+.sheet-body{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.sheet-verdict{padding:4px 10px;border-radius:var(--r-pill);background:rgba(255,255,255,.12);color:var(--s-text);font-size:12px;font-weight:800;letter-spacing:1px}
+.sheet-title{font-family:var(--font-display);font-size:30px;font-weight:800;line-height:1;color:var(--s-text)}
+.sheet-why{margin:0;max-width:560px;color:var(--text);font-size:17px;font-weight:600;line-height:1.45}
+.sheet-why b{color:var(--s-text)}
+.sheet-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.sheet-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--r-pill);background:rgba(0,0,0,.22);font-size:13px;font-weight:800;color:var(--text-soft)}
+.sheet-chip img{width:18px;height:18px}
+.chip-coin{color:var(--yellow)}
+.chip-streak{color:var(--s-text)}
+.chip-life{color:var(--coral-soft)}
+.sheet-next{--btn:var(--s);--btn-lip:var(--s-lip);min-width:200px;font-size:19px;padding:16px 26px}
+.sheet-bad .sheet-next,.sheet-time .sheet-next{color:var(--ink)}
+
+/* ---------- Animações ---------- */
+@keyframes fxFade{from{opacity:0}to{opacity:1}}
+@keyframes fxPop{0%{transform:scale(0)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes fxPopBad{0%{transform:scale(0)}35%{transform:scale(1.15) rotate(0)}50%{transform:scale(1.05) rotate(-10deg)}62%{transform:rotate(8deg)}74%{transform:rotate(-5deg)}86%{transform:rotate(2deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes fxDraw{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+@keyframes fxSticker{from{opacity:0;transform:scale(0) rotate(-45deg)}to{opacity:1;transform:scale(1) rotate(12deg)}}
+@keyframes fxSpin{to{transform:rotate(360deg)}}
+@keyframes fxSpark{0%{opacity:1;transform:rotate(var(--a)) translateY(0) scale(1)}100%{opacity:0;transform:rotate(var(--a)) translateY(calc(-1 * var(--r,80px))) scale(.3)}}
+/* A barra aparece fininha no rodapé, estica para os lados e depois sobe */
+@keyframes sheetOpen{
+  0%{clip-path:inset(calc(100% - 6px) 50% 0 50%)}
+  35%{clip-path:inset(calc(100% - 6px) 0 0 0)}
+  100%{clip-path:inset(0 0 0 0)}}
+@keyframes tableShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(2px)}}
+@keyframes comboPulse{0%,100%{box-shadow:0 0 0 1px var(--combo),0 0 32px var(--combo-glow)}50%{box-shadow:0 0 0 1px var(--combo),0 0 56px var(--combo-glow)}}
+@keyframes comboBump{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes comboBreak{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px);border-color:var(--coral)}50%{transform:translateX(5px);border-color:var(--coral)}75%{transform:translateX(-3px)}}
+@keyframes comboRainbow{to{background-position:300% 0}}
+@keyframes emberRise{0%{opacity:0;transform:translate(0,0) scale(1)}15%{opacity:.8}100%{opacity:0;transform:translate(16px,-420px) scale(.4)}}
+@keyframes toastDrop{0%{opacity:0;transform:translate(-50%,-80px) scale(.8)}18%{opacity:1;transform:translate(-50%,0) scale(1)}82%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-30px)}}
+@keyframes chipHit{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) scale(1.1)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes chipGain{0%{transform:scale(1)}40%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,0)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-34px)}}
+
+/* ---------- Celular ---------- */
+@media(max-width:600px){
+  .combo-bar{gap:8px;padding:6px 12px}
+  .combo-label{display:none}
+  .combo-status{min-width:0;font-size:15px}
+  .combo-status small{font-size:9px}
+  .combo-meter i{height:8px}
+  .fx-badge{width:88px;height:88px}
+  .combo-toast{top:10px;font-size:19px;padding:8px 18px 8px 10px}
+  .combo-toast-emoji{width:34px;height:34px;font-size:20px}
+  .answer-sheet{padding:16px 16px calc(14px + env(safe-area-inset-bottom))}
+  .sheet-inner{grid-template-columns:auto 1fr;gap:10px 12px}
+  .sheet-mascot{width:62px;align-self:start}
+  .sheet-title{font-size:24px}
+  .sheet-why{font-size:15px}
+  .sheet-next{grid-column:1/-1;width:100%;min-width:0;margin-top:4px}
+}
+
+/* =====================================================================
+   Modo calmo: o jogo continua igual, só sem partículas, tremidas,
+   brilhos pulsando e mascote pulando. Liga sozinho se o sistema
+   pede para reduzir animações (e pode ser ligado em Ajustes).
+   ===================================================================== */
+body.calm .bubble-burst,body.calm .combo-embers,body.calm .combo-vignette,body.calm .fx-sparks,body.calm .fx-rays,body.calm .float-text{display:none}
+body.calm .mascot svg,body.calm .m-bubble,body.calm .question-card,body.calm .game-table,body.calm .combo-bar,body.calm .combo-bar *,
+body.calm .stat-chip,body.calm .fx-badge,body.calm .fx-emoji,body.calm .fx-mark,body.calm .result-card{animation:none!important}
+body.calm .combo-toast{animation:toastCalm 2.2s ease forwards}
+body.calm .answer-sheet{animation:fxFade .3s .2s ease-out backwards}
+body.calm .sheet-inner{animation:none}
+body.calm .play-screen:not([data-tier="0"]) .game-table{box-shadow:0 0 0 1px var(--combo)}
+@keyframes toastCalm{0%,100%{opacity:0}12%,85%{opacity:1}}
