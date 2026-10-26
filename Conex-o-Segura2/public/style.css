@@ -467,6 +467,9 @@ body[data-screen="playing"] #backBtn,body[data-screen="playing"] .header-wallet{
   .card-emblem{width:76px;height:76px;font-size:42px}
   .card-timer{margin-bottom:8px;padding:5px 10px}
   .answer-btn{min-height:56px}
+}
+/* Celular (continuação): Corrida da Bolha, rodapé e cadastro */
+@media(max-width:600px){
   .runner-stage-wrap{min-height:320px}
   .runner-stage{top:auto;bottom:0;transform-origin:bottom left}
   .runner-overlay h2{font-size:32px}
