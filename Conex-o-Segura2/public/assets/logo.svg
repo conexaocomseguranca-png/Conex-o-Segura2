@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Logo do Conexão Segura: uma árvore feita de trilhas de circuito.
+       Para usar a arte oficial, substitua este arquivo (mesmo nome). -->
+  <defs>
+    <!-- userSpaceOnUse: sem isso, linhas retas (tronco e raízes) ficam invisíveis -->
+    <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="100" x2="0" y2="8">
+      <stop offset="0" stop-color="#00977D"/>
+      <stop offset="1" stop-color="#3EE6C4"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#g)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- tronco e raízes -->
+    <path d="M50 94V27"/>
+    <path d="M50 94H40M50 94H60"/>
+    <!-- galhos da esquerda -->
+    <path d="M50 66L40 56V35"/>
+    <path d="M40 50L30 40V30"/>
+    <path d="M50 78L22 50V44"/>
+    <!-- galhos da direita -->
+    <path d="M50 61L60 51V37"/>
+    <path d="M60 47L70 37V31"/>
+    <path d="M50 72L73 49"/>
+  </g>
+  <!-- folhas -->
+  <g fill="url(#g)">
+    <ellipse cx="50" cy="17" rx="4.6" ry="9"/>
+    <ellipse cx="40" cy="26" rx="4.2" ry="8"/>
+    <ellipse cx="60" cy="28" rx="4.2" ry="8"/>
+    <ellipse cx="70" cy="23" rx="3.8" ry="7"/>
+    <ellipse cx="22" cy="36" rx="3.8" ry="7"/>
+    <ellipse cx="78" cy="44" rx="3.6" ry="7" transform="rotate(45 78 44)"/>
+  </g>
+  <!-- pontos de solda do circuito -->
+  <g fill="#0F1B2E" stroke="url(#g)" stroke-width="3">
+    <circle cx="30" cy="26" r="3.4"/>
+    <circle cx="37" cy="94" r="3"/>
+    <circle cx="63" cy="94" r="3"/>
+  </g>
+</svg>
