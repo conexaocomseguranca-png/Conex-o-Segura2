@@ -112,8 +112,13 @@ const nameError = document.getElementById("nameError");
 const soundBtn = document.getElementById("soundBtn");
 const narrateBtn = document.getElementById("narrateBtn");
 
-let soundOn = true;
+const calmBtn = document.getElementById("calmBtn");
+
+let soundOn = localStorage.getItem("cs-sound")!=="off";
 let narrateOn = localStorage.getItem("cs-narrate")!=="off";
+// Modo calmo: menos movimento, sem partículas e sem brilho piscando.
+// Começa ligado se o sistema pede para reduzir animações.
+let calmOn = localStorage.getItem("cs-calm") ? localStorage.getItem("cs-calm")==="on" : matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ---------- Narração das cartas (voz do navegador) ----------
 const speech = window.speechSynthesis || null;
@@ -127,13 +132,15 @@ function speak(text){
   speech.speak(u);
 }
 function stopSpeak(){ if(speech)speech.cancel(); }
-function updateNarrateBtn(){ narrateBtn.textContent=narrateOn?"🗣️":"🔇"; narrateBtn.classList.toggle("off",!narrateOn); }
+function updateNarrateBtn(){ narrateBtn.setAttribute("aria-checked",String(narrateOn)); }
 function toggleNarrate(){
   narrateOn=!narrateOn;
   localStorage.setItem("cs-narrate",narrateOn?"on":"off");
   updateNarrateBtn();
   if(!narrateOn)stopSpeak();
 }
+function updateCalm(){ document.body.classList.toggle("calm",calmOn); calmBtn.setAttribute("aria-checked",String(calmOn)); }
+function toggleCalm(){ calmOn=!calmOn; localStorage.setItem("cs-calm",calmOn?"on":"off"); updateCalm(); }
 let player = null;
 let selectedAvatar = 0;
 let pendingAction = null;
@@ -145,9 +152,21 @@ let revealed = false;
 let locked = false;
 let timer = null;
 let cardTimer = null, cardDeadline = 0;
+let awaitingNext = false;   // feedback aberto, esperando o jogador apertar "Próxima carta"
 let audioCtx = null;
 
-function initialGame(){ return {status:"start",mission:1,queue:[],lives:MAX_LIVES,coins:0,completed:0,phaseDone:0,phaseStartCoins:0,total:QUESTIONS.length,partidaId:null,finalizada:false}; }
+// ---------- Combo de acertos seguidos ----------
+// Cada nível de combo muda o visual da mesa, as partículas e os sons.
+const COMBO_TIERS = [
+  {min:0,name:"",emoji:"😄"},
+  {min:2,name:"EM SEQUÊNCIA",emoji:"😎"},
+  {min:4,name:"PEGANDO FOGO",emoji:"🔥"},
+  {min:6,name:"IMPARÁVEL",emoji:"⚡"},
+  {min:9,name:"LENDÁRIO",emoji:"👑"}
+];
+const COMBO_MAX = COMBO_TIERS[COMBO_TIERS.length-1].min;
+
+function initialGame(){ return {status:"start",mission:1,queue:[],lives:MAX_LIVES,coins:0,completed:0,phaseDone:0,phaseStartCoins:0,streak:0,bestStreak:0,total:QUESTIONS.length,partidaId:null,finalizada:false}; }
 function currentPhase(){ return PHASES[game.mission-1]; }
 function phaseQueue(n){ return shuffle(QUESTIONS.filter(q=>q.mission===n)); }
 function shuffle(items){ return [...items].sort(() => Math.random() - .5); }
@@ -162,16 +181,16 @@ async function startGame(){
     }));
     if(player?.id!==jogadorId)return;
     game={...initialGame(),status:"playing",queue:phaseQueue(1),partidaId:resposta.partida_id};
-    revealed=false;locked=false;Banco.limparAviso();render();
+    revealed=false;locked=false;awaitingNext=false;Banco.limparAviso();render();
   }catch(erro){Banco.aviso('Nao foi possivel iniciar a partida: '+erro.message);}
 }
 function startPhase(n){
   game.mission=n; game.queue=phaseQueue(n); game.phaseDone=0; game.phaseStartCoins=game.coins;
-  game.status="playing"; revealed=false; locked=false; render();
+  game.status="playing"; revealed=false; locked=false; awaitingNext=false; render();
 }
 // Depois de perder todas as vidas, recomeça a fase atual (não o jogo inteiro)
 function retryPhase(){
-  game.lives=MAX_LIVES; game.coins=game.phaseStartCoins; game.completed-=game.phaseDone;
+  game.lives=MAX_LIVES; game.coins=game.phaseStartCoins; game.completed-=game.phaseDone; game.streak=0;
   startPhase(game.mission);
 }
 async function savePlayer(){
@@ -236,12 +255,85 @@ function playTone(freq,end,duration,type="sine"){
     o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration+.05);
   }catch(e){}
 }
-function chirp(correct){playTone(correct?520:260,correct?780:190,.16);}
+// Quanto maior o combo, mais agudo e mais "cheio" fica o som do acerto
+function chirp(correct,tier=0){
+  if(!correct){playTone(260,190,.16);return;}
+  const f=520*(1+tier*.12);
+  playTone(f,f*1.5,.16);
+  if(tier>=2)setTimeout(()=>playTone(f*1.25,f*1.9,.14,"triangle"),110);
+  if(tier>=4)setTimeout(()=>playTone(f*1.5,f*2.2,.18,"triangle"),220);
+}
 
-function burst(){
-  const el=document.createElement("div");el.className="bubble-burst";
-  for(let i=0;i<9;i++)el.innerHTML+="<i></i>";
-  document.body.appendChild(el);setTimeout(()=>el.remove(),1000);
+// Bolhas subindo pela tela; o combo aumenta a quantidade e muda a cor
+function burst(tier=0){
+  const el=document.createElement("div");el.className="bubble-burst";el.dataset.tier=tier;
+  const n=9+tier*5;
+  for(let i=0;i<n;i++){
+    const size=18+Math.random()*(12+tier*5);
+    el.innerHTML+=`<i style="left:${(4+Math.random()*92).toFixed(1)}%;width:${size.toFixed(0)}px;height:${size.toFixed(0)}px;animation-delay:${(Math.random()*.25).toFixed(2)}s"></i>`;
+  }
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1300);
+}
+
+function comboTier(streak=game.streak){
+  let tier=0;
+  COMBO_TIERS.forEach((t,i)=>{if(streak>=t.min)tier=i;});
+  return tier;
+}
+function comboBar(){
+  const tier=comboTier(),t=COMBO_TIERS[tier];
+  const next=COMBO_TIERS.find(c=>c.min>game.streak);
+  const meter=Array.from({length:COMBO_MAX},(_,i)=>`<i class="${i<game.streak?"on":""} ${next&&i===next.min-1?"goal":""}"></i>`).join("");
+  const status=tier?`${t.emoji} x${game.streak} <small>${t.name}</small>`:game.streak?`x${game.streak}`:"<small>ACERTE EM SEQUÊNCIA</small>";
+  return `<span class="combo-label">COMBO</span><div class="combo-meter">${meter}</div><span class="combo-status">${status}</span>`;
+}
+function comboEmbers(tier){
+  const n=tier>=2?tier*5:0;
+  return Array.from({length:n},()=>`<i style="left:${(Math.random()*100).toFixed(1)}%;animation-delay:${(Math.random()*3).toFixed(2)}s;animation-duration:${(2.4+Math.random()*2).toFixed(2)}s"></i>`).join("");
+}
+// Atualiza o visual do combo sem redesenhar a carta (usado logo após a resposta)
+function updateComboUI(effect){
+  const screen=document.querySelector(".play-screen");
+  if(!screen)return;
+  const tier=comboTier();
+  screen.dataset.tier=tier;
+  const bar=document.getElementById("comboBar");
+  if(bar){
+    bar.innerHTML=comboBar();
+    bar.classList.remove("bump","broken");void bar.offsetWidth;
+    if(effect)bar.classList.add(effect);
+  }
+  const embers=document.getElementById("comboEmbers");
+  if(embers&&embers.dataset.tier!==String(tier)){embers.dataset.tier=tier;embers.innerHTML=comboEmbers(tier);}
+}
+// Subiu de nível no combo: um selo com o nome do nível desce do topo.
+// (Sem piscar a tela inteira, para não incomodar quem é sensível a luz.)
+function comboLevelUp(tier){
+  document.querySelector(".combo-toast")?.remove();
+  const t=COMBO_TIERS[tier],el=document.createElement("div");
+  el.className="combo-toast";el.dataset.tier=tier;el.setAttribute("aria-hidden","true");
+  el.innerHTML=`<span class="combo-toast-emoji">${t.emoji}</span><span><small>NOVO COMBO</small>${t.name}!</span>`;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),2300);
+}
+// Reinicia uma animação CSS em um elemento (ex.: o coração tremendo ao perder vida)
+function replay(el,cls){ if(!el)return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+// Número que sobe e some, como "+10" nas moedas ou "-1" nas vidas
+function floatText(el,text,kind){
+  if(!el)return;
+  const f=document.createElement("span");f.className="float-text "+kind;f.textContent=text;
+  el.appendChild(f);setTimeout(()=>f.remove(),1100);
+}
+// Fala da mascote acima da carta: diz sempre qual é o próximo passo
+function guideText(){
+  const phase=currentPhase();
+  if(!revealed)return "Toque na carta para descobrir a situação!";
+  return phase.time?`Você tem ${phase.time} segundos. Essa situação é <b>segura</b> ou <b>perigosa</b>?`:"Leia com calma. Essa situação é <b>segura</b> ou <b>perigosa</b>?";
+}
+function setGuide(mood,html){
+  const g=document.getElementById("lessonGuide");
+  if(!g)return;
+  g.querySelector(".guide-mascot").innerHTML=mascot(mood,mood==="triste"?"wobble":"jump");
+  g.querySelector(".speech").innerHTML=html;
 }
 
 // ---------- Tempo para responder (fases 3 a 5) ----------
@@ -276,26 +368,24 @@ async function answerCard(answer){
       pergunta_id:QUESTIONS.indexOf(card)+1,escolha:answer
     }));
     if(game.partidaId!==partidaId || game.status!=='playing')return;
-    const correct=resultado.acertou;
+    const correct=resultado.acertou,prevStreak=game.streak;
     shopWallet=resultado.carteira;saveWallet();Banco.limparAviso();
-    showFeedback(card,correct,answer===null);
     if(correct){
       game.coins+=resultado.moedas;game.completed++;game.phaseDone++;
-      game.queue.shift();chirp(true);burst();
-      timer=setTimeout(()=>{
-        if(game.queue.length===0){
-          game.status=game.mission<PHASES.length?'phase-complete':'victory';
-        }
-        revealed=false;locked=false;render();
-      },1700);
+      game.streak++;game.bestStreak=Math.max(game.bestStreak,game.streak);
+      game.queue.shift();
     }else{
-      game.lives=Math.max(0,game.lives-1);
-      game.queue.push(game.queue.shift());chirp(false);
-      timer=setTimeout(()=>{
-        if(game.lives===0)game.status='gameover';
-        revealed=false;locked=false;render();
-      },1900);
+      game.lives=Math.max(0,game.lives-1);game.streak=0;
+      game.queue.push(game.queue.shift());
     }
+    const tier=comboTier(),tierUp=correct&&tier>comboTier(prevStreak);
+    showFeedback(card,correct,answer===null,prevStreak,tierUp,resultado.moedas);
+    updateComboUI(correct?"bump":prevStreak>=2?"broken":null);
+    chirp(correct,tier);
+    if(correct)burst(tier);
+    if(tierUp){comboLevelUp(tier);setTimeout(()=>playTone(660,1320,.22,"triangle"),260);}
+    // O jogo não avança sozinho: o jogador lê a explicação e aperta "Próxima carta"
+    awaitingNext=true;
   }catch(erro){
     locked=false;
     const fb=document.getElementById('feedback');
@@ -303,18 +393,89 @@ async function answerCard(answer){
     Banco.aviso('Resposta nao salva: '+erro.message);
   }
 }
-function showFeedback(card,correct,timedOut){
-  const head=timedOut?"Tempo esgotado!":correct?"Resposta certa!":"Não foi dessa vez.";
-  const fb=document.getElementById("feedback");
-  if(fb){
-    const icon=timedOut?"⏱ ":correct?"✓ ":"✗ ";
-    fb.className="feedback-line "+(correct?"feedback-good":"feedback-bad");
-    fb.innerHTML=`<strong>${icon}${head}</strong><span>${escapeHtml(card.tip)}</span>`;
+const FX_ICONS = {
+  good:'<circle class="fx-ring" cx="26" cy="26" r="23"/><path class="fx-mark" d="M15 27.5l7.5 7.5L38 19"/>',
+  bad:'<circle class="fx-ring" cx="26" cy="26" r="23"/><path class="fx-mark" d="M18 18l16 16"/><path class="fx-mark fx-mark-2" d="M34 18L18 34"/>',
+  time:'<circle class="fx-ring" cx="26" cy="26" r="23"/><path class="fx-mark" d="M26 14v13l8 5"/>'
+};
+// Feedback em duas etapas (no estilo Duolingo):
+// 1) o ícone animado aparece em cima da carta (✓, ✗ ou relógio);
+// 2) uma barra se estica no rodapé e sobe como um painel com a explicação.
+function showFeedback(card,correct,timedOut,prevStreak,tierUp,earned){
+  const kind=timedOut?"time":correct?"good":"bad";
+  const tier=comboTier(),t=COMBO_TIERS[tier];
+  const head=timedOut?"O tempo acabou!":correct?(tier>=2?"Incrível!":"Você acertou!"):"Quase lá!";
+  const situation=card.safe?"segura":"perigosa";
+  const why=(correct?`Você acertou porque essa situação é <b>${situation}</b>. `
+    :timedOut?`Essa situação é <b>${situation}</b>. `
+    :`Essa situação é <b>${situation}</b>. `)+escapeHtml(card.tip);
+  const chips=[];
+  if(correct&&earned)chips.push(`<span class="sheet-chip chip-coin"><img src="${COIN_IMG}" alt=""> +${earned} moedas</span>`);
+  if(correct&&game.streak>=2)chips.push(`<span class="sheet-chip chip-streak">${t.emoji} ${game.streak} seguidas${tierUp?` · <b>${t.name}</b>`:""}</span>`);
+  if(!correct)chips.push(`<span class="sheet-chip chip-life">♥ -1 vida</span>`);
+  if(!correct&&prevStreak>=2)chips.push(`<span class="sheet-chip chip-lost">💔 sequência de ${prevStreak} acabou</span>`);
+  const nextLabel=game.lives===0?"VER RESULTADO":game.queue.length===0?"CONCLUIR FASE":"CONTINUAR";
+  const mood=correct?(tier>=2?"animada":"feliz"):timedOut?"pensando":"triste";
+  const emoji=correct?t.emoji:timedOut?"⏰":"😵";
+  const nSparks=correct?8+tier*4:0;
+  const sparks=Array.from({length:nSparks},(_,i)=>`<i style="--a:${(360/nSparks*i).toFixed(0)}deg;--d:${(.25+Math.random()*.15).toFixed(2)}s;--r:${70+tier*12+Math.random()*30|0}px"></i>`).join("");
+
+  // 1) Ícone em cima da carta
+  const table=document.querySelector(".play-screen .game-table");
+  if(table){
+    replay(table,correct?"fx-glow":"fx-shake");
+    table.insertAdjacentHTML("beforeend",`
+      <div class="answer-fx fx-${kind}${tierUp?" fx-tier-up":""}" aria-hidden="true">
+        <div class="fx-badge">
+          ${correct?'<span class="fx-rays"></span>':""}
+          <span class="fx-sparks">${sparks}</span>
+          <svg viewBox="0 0 52 52">${FX_ICONS[kind]}</svg>
+          <span class="fx-emoji">${emoji}</span>
+        </div>
+      </div>`);
   }
-  speak(head+" "+card.tip);
+  // 2) Painel com a explicação
+  document.getElementById("answerSheet")?.remove();
+  document.body.insertAdjacentHTML("beforeend",`
+    <div class="answer-sheet sheet-${kind}" id="answerSheet" data-tier="${correct?tier:0}" role="status" aria-live="polite">
+      <div class="sheet-inner">
+        <div class="sheet-mascot">${mascot(mood,correct?"jump":"wobble")}</div>
+        <div class="sheet-body">
+          <span class="sheet-verdict">${card.safe?"🛡️ SITUAÇÃO SEGURA":"⚠ SITUAÇÃO PERIGOSA"}</span>
+          <strong class="sheet-title">${head}</strong>
+          <p class="sheet-why">${why}</p>
+          ${chips.length?`<div class="sheet-chips">${chips.join("")}</div>`:""}
+        </div>
+        <button class="game-btn sheet-next" id="nextCardBtn">${nextLabel}</button>
+      </div>
+    </div>`);
+  document.getElementById("nextCardBtn").onclick=nextCard;
+  // Espaço extra no fim da tela para o painel não cobrir a carta
+  const sheet=document.getElementById("answerSheet"),screen=document.querySelector(".play-screen");
+  if(screen)screen.style.paddingBottom=(sheet.querySelector(".sheet-inner").offsetHeight+40)+"px";
+  // Foco no botão só depois que o painel abriu, para não "pular" a animação
+  clearTimeout(timer);
+  timer=setTimeout(()=>document.getElementById("nextCardBtn")?.focus({preventScroll:true}),1000);
+
+  // Mascote, vidas, moedas e progresso reagem na hora
+  setGuide(mood,correct?"Mandou bem! 🎉":timedOut?"Sem pressa: da próxima vez você consegue.":"Tudo bem errar. Vamos aprender juntos!");
+  const lives=document.getElementById("livesCount");
+  if(lives)lives.textContent=game.lives;
+  if(!correct){replay(document.getElementById("livesChip"),"hit");floatText(document.getElementById("livesChip"),"-1","minus");}
+  const coins=document.getElementById("coinCount");
+  if(coins)coins.textContent=game.coins;
+  if(correct&&earned){replay(document.getElementById("coinChip"),"gain");floatText(document.getElementById("coinChip"),"+"+earned,"plus");}
+  const bar=document.getElementById("lessonFill");
+  if(bar)bar.style.width=(game.phaseDone/CARDS_PER_PHASE*100)+"%";
+  speak(`${head} Essa situação é ${situation}. ${card.tip}`);
   ["safeBtn","dangerBtn"].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=true;});
-  const h=document.querySelector(".play-screen .hearts");
-  if(h)h.innerHTML=hearts();
+}
+function nextCard(){
+  if(!awaitingNext||game.status!=="playing"){awaitingNext=false;return;}
+  awaitingNext=false;clearTimeout(timer);stopSpeak();
+  if(game.lives===0)game.status='gameover';
+  else if(game.queue.length===0)game.status=game.mission<PHASES.length?'phase-complete':'victory';
+  revealed=false;locked=false;render();
 }
 
 function finalizarCartas(resultado){
@@ -331,14 +492,12 @@ function goHome(){
   stopMemory();memory=null;
   cancelAnimationFrame(runnerFrame);runner=createRunner();
   clearTimeout(timer);stopCardTimer();stopSpeak();
-  game=initialGame();revealed=false;locked=false;render();
+  game=initialGame();revealed=false;locked=false;awaitingNext=false;render();
 }
 function restart(){startGame();}
-function toggleSound(){soundOn=!soundOn;soundBtn.textContent=soundOn?"🔊":"🔇";}
+function updateSoundBtn(){soundBtn.setAttribute("aria-checked",String(soundOn));}
+function toggleSound(){soundOn=!soundOn;localStorage.setItem("cs-sound",soundOn?"on":"off");updateSoundBtn();}
 
-function hearts(){
-  return Array.from({length:MAX_LIVES},(_,i)=>`<span class="${i<game.lives?"heart-full":"heart-empty"}">♥</span>`).join("");
-}
 function playerAvatar(){
   const animal=ownedAnimalAvatar(shopWallet.avatar);
   if(animal)return animal.image;
@@ -346,6 +505,10 @@ function playerAvatar(){
 }
 
 function render(){
+  // Painel de explicação e selo de combo pertencem só à carta atual
+  document.getElementById("answerSheet")?.remove();
+  document.querySelector(".combo-toast")?.remove();
+  document.body.dataset.screen=game.status;
   if(game.status==="start")renderStart();
   else if(game.status==="credits")renderCredits();
   else if(game.status==="shop")renderShop();
@@ -357,29 +520,27 @@ function render(){
   updateWallet();applyShopEquipment();
 }
 function renderStart(){
+  const hello=player?`Oi, <b>${escapeHtml(player.nickname)}</b>! Pronto para mais uma missão?`:"Oi! Eu sou a <b>Bolhinha</b>. Vamos aprender a se proteger na internet?";
   app.innerHTML=`
     <section class="start-screen">
-      <div class="start-illustration">
-        <div class="illustration-rays">✦</div>
-        <div class="character character-left"><img src="${AVATARS[1]}" alt=""></div>
-        <div class="illustration-shield">🛡️</div>
-        <div class="character character-right"><img src="${AVATARS[0]}" alt=""></div>
-        <div class="illustration-star">✳</div>
+      <div class="hero">
+        <div class="hero-mascot">${mascot("feliz","idle")}</div>
+        <div class="speech speech-hero">${hello}</div>
       </div>
       <div class="start-copy">
         <span class="eyebrow">UMA AVENTURA DE SEGURANÇA DIGITAL</span>
-        <h1>Sua próxima missão<br>começa <em>aqui!</em></h1>
-        <p>Vire as cartas, faça suas escolhas e descubra como navegar com segurança.</p>
+        <h1>Conexão <em>Segura</em></h1>
+        <p>Vire as cartas, decida se cada situação é segura ou perigosa e descubra como navegar com segurança.</p>
       </div>
-      <button class="game-btn start-cta" id="startBtn">START →</button>
-      <div class="start-footnote">✦ ${PHASES.length} FASES <span class="footnote-divider">·</span> ${CARDS_PER_PHASE} CARTAS POR FASE <span class="footnote-divider">·</span> ${MAX_LIVES} VIDAS ✦</div>
-      <div class="start-links">
-        <button class="mini-game-link" id="runnerLink">🫧 MINI GAME: CORRIDA DA BOLHA</button>
-        <button class="mini-game-link memory-menu-link" id="memoryLink">🧠 FASE 3: MEMÓRIA DIGITAL</button>
-        <button class="mini-game-link shop-menu-link" id="shopBtn">🛍 LOJA</button>
-        <button class="mini-game-link" id="rankingBtn">🏆 RANKING</button>
-        ${player?`<button class="mini-game-link" id="switchPlayer">👤 ${escapeHtml(player.nickname)} · TROCAR JOGADOR</button>`:""}
-        <button class="mini-game-link" id="creditsBtn">★ CRÉDITOS</button>
+      <button class="game-btn start-cta" id="startBtn">▶ COMEÇAR A JOGAR</button>
+      <div class="start-footnote"><span>📚 ${PHASES.length} fases</span><span>🃏 ${CARDS_PER_PHASE} cartas por fase</span><span>♥ ${MAX_LIVES} vidas</span></div>
+      <div class="mode-grid">
+        <button class="mode-tile tile-blue" id="runnerLink"><span class="tile-icon">🏃</span><span class="tile-name">Corrida da Bolha</span><small>Mini game</small></button>
+        <button class="mode-tile tile-purple" id="memoryLink"><span class="tile-icon">🧠</span><span class="tile-name">Memória Digital</span><small>Jogo da memória</small></button>
+        <button class="mode-tile tile-gold" id="shopBtn"><span class="tile-icon">🛍️</span><span class="tile-name">Loja</span><small>Troque suas moedas</small></button>
+        <button class="mode-tile tile-coral" id="rankingBtn"><span class="tile-icon">🏆</span><span class="tile-name">Ranking</span><small>Melhores jogadores</small></button>
+        ${player?`<button class="mode-tile tile-teal" id="switchPlayer"><span class="tile-icon">👤</span><span class="tile-name">Trocar jogador</span><small>${escapeHtml(player.nickname)}</small></button>`:""}
+        <button class="mode-tile tile-gray" id="creditsBtn"><span class="tile-icon">⭐</span><span class="tile-name">Créditos</span><small>Quem fez o jogo</small></button>
       </div>
     </section>`;
   document.getElementById("startBtn").onclick=()=>player?startGame():abrirCadastro('cartas');
@@ -448,40 +609,48 @@ function renderCards(){
   if(!card)return;
   const phase=currentPhase();
   const sizeClass=card.question.length>125?"xlong":card.question.length>100?"long":"";
+  const tier=comboTier();
+  const left=CARDS_PER_PHASE-game.phaseDone;
   app.innerHTML=`
-    <section class="play-screen">
-      <div class="play-topline">
-        <span class="mission-label"><span class="mission-dot"></span> FASE ${String(phase.id).padStart(2,"0")} DE ${String(PHASES.length).padStart(2,"0")}</span>
-        <span class="remaining-label">${CARDS_PER_PHASE-game.phaseDone} CARTAS RESTANTES</span>
-      </div>
-      <div class="play-title">
-        <div>
-          <h1>${phase.title}</h1>
-          <p>${phase.subtitle}</p>
+    <section class="play-screen" data-tier="${tier}">
+      <div class="combo-vignette" aria-hidden="true"></div>
+      <div class="lesson-top">
+        <button class="icon-btn lesson-close" id="quitLesson" title="Sair da fase" aria-label="Sair da fase">✕</button>
+        <div class="lesson-progress" role="progressbar" aria-label="Cartas concluídas" aria-valuemin="0" aria-valuemax="${CARDS_PER_PHASE}" aria-valuenow="${game.phaseDone}">
+          <div class="lesson-fill" id="lessonFill" style="width:${game.phaseDone/CARDS_PER_PHASE*100}%"></div>
         </div>
+        <span class="stat-chip lives-chip" id="livesChip" title="Vidas"><span class="chip-icon">♥</span><strong id="livesCount">${game.lives}</strong></span>
+      </div>
+      <div class="lesson-head">
+        <div class="lesson-title">
+          <span class="lesson-phase">FASE ${phase.id} DE ${PHASES.length} · ${left} ${left===1?"CARTA":"CARTAS"}</span>
+          <h1>${phase.title}</h1>
+        </div>
+        <span class="stat-chip coin-chip" id="coinChip" title="Moedas"><img src="${COIN_IMG}" alt=""><strong id="coinCount">${game.coins}</strong></span>
         <div class="avatar-picker">
           <span class="player-tag">${escapeHtml(player?.nickname||"Jogador")}</span>
           <img src="${playerAvatar()}" alt="">
-          <button class="icon-btn" id="editPlayer">↻</button>
+          <button class="icon-btn" id="editPlayer" title="Trocar jogador" aria-label="Trocar jogador">↻</button>
         </div>
       </div>
-      <div class="stats-row">
-        <div class="stat-group"><span class="stat-caption">SUAS VIDAS</span><div class="hearts">${hearts()}</div></div>
-        <div class="stat-group"><span class="stat-caption">DIFICULDADE</span><span class="difficulty">${difficultyDots(phase.id)}</span></div>
-        <div class="stat-group coins"><img src="${COIN_IMG}" alt=""><span>${game.coins}</span><small>MOEDAS</small></div>
+      <div class="combo-bar" id="comboBar">${comboBar()}</div>
+
+      <div class="lesson-guide" id="lessonGuide">
+        <div class="guide-mascot">${mascot(revealed?"pensando":"feliz")}</div>
+        <div class="speech">${guideText()}</div>
       </div>
 
       <div class="game-table">
-        <div class="table-top"><span>BARALHO DA FASE</span><span>${game.phaseDone}/${CARDS_PER_PHASE} CONCLUÍDAS</span></div>
+        <div class="combo-embers" id="comboEmbers" data-tier="${tier}" aria-hidden="true">${comboEmbers(tier)}</div>
         <div class="deck-stage">
-          <div class="deck-shadow"></div><div class="deck-under deck-under-two"></div><div class="deck-under deck-under-one"></div>
-          <button class="question-card ${revealed?"flipped":""}" id="questionCard" ${revealed?"disabled":""}>
+          <div class="deck-under deck-under-two"></div><div class="deck-under deck-under-one"></div>
+          <button class="question-card ${revealed?"flipped":""}" id="questionCard" ${revealed?"disabled":""} aria-label="${revealed?"Carta revelada":"Virar a carta"}">
             <span class="card-flipper">
               <span class="card-face card-back">
                 <span class="card-corner">CS <span>✦</span></span>
                 <span class="card-emblem">🛡️</span>
                 <span class="card-back-title">CONEXÃO<br>SEGURA</span>
-                <span class="card-back-bottom">TOQUE PARA VIRAR →</span>
+                <span class="card-back-bottom">👆 TOQUE PARA VIRAR</span>
               </span>
               <span class="card-face card-front">
                 <span class="card-front-top"><span>${card.category}</span><span>FASE ${phase.id}</span></span>
@@ -492,46 +661,64 @@ function renderCards(){
             </span>
           </button>
         </div>
-        <div class="table-bottom"><span>✳</span><span>${revealed?"FAÇA SUA ESCOLHA":"TOQUE NO MONTE PARA REVELAR"}</span><span>✳</span></div>
       </div>
 
       <div class="answer-area">
-        ${phase.time?`<div class="card-timer ${revealed?"":"idle"}" id="cardTimer"><span class="timer-text">${phase.time}s</span><div class="timer-track"><div class="timer-fill"></div></div></div>`:""}
-        <div id="feedback" class="feedback-line">${revealed?"Esta situação é segura?":phase.time?`Você terá ${phase.time} segundos para responder.`:"Uma nova descoberta te espera."}</div>
+        ${phase.time?`<div class="card-timer ${revealed?"":"idle"}" id="cardTimer"><span class="timer-icon" aria-hidden="true">⏱</span><div class="timer-track"><div class="timer-fill"></div></div><span class="timer-text">${phase.time}s</span></div>`:""}
+        <div id="feedback" class="feedback-line" role="status"></div>
         <div class="answer-actions">
-          <button class="answer-btn safe" id="safeBtn" ${revealed?"":"disabled"}>🛡️ SEGURO</button>
-          <button class="answer-btn danger" id="dangerBtn" ${revealed?"":"disabled"}>⚠ PERIGOSO</button>
+          <button class="answer-btn safe" id="safeBtn" ${revealed?"":"disabled"}><span class="answer-icon">🛡️</span><span>SEGURO</span></button>
+          <button class="answer-btn danger" id="dangerBtn" ${revealed?"":"disabled"}><span class="answer-icon">⚠️</span><span>PERIGOSO</span></button>
         </div>
       </div>
-      <div class="progress-track"><div style="width:${game.phaseDone/CARDS_PER_PHASE*100}%"></div></div>
     </section>`;
-  document.getElementById("questionCard").onclick=()=>{revealed=true;render();startCardTimer();speak(card.category+". "+card.question);};
+  document.getElementById("questionCard").onclick=()=>{
+    revealed=true;
+    document.getElementById("questionCard").classList.add("flipped");
+    document.getElementById("questionCard").disabled=true;
+    document.getElementById("questionCard").setAttribute("aria-label","Carta revelada");
+    ["safeBtn","dangerBtn"].forEach(id=>document.getElementById(id).disabled=false);
+    document.getElementById("cardTimer")?.classList.remove("idle");
+    setGuide("pensando",guideText());
+    startCardTimer();speak(card.category+". "+card.question);
+  };
   document.getElementById("safeBtn").onclick=()=>answerCard(true);
   document.getElementById("dangerBtn").onclick=()=>answerCard(false);
   document.getElementById("editPlayer").onclick=openModal;
+  document.getElementById("quitLesson").onclick=goHome;
 }
 
+// Quadros coloridos de resultado (moedas, vidas, combo), como no fim de lição do Duolingo
+function resultCards(items){
+  return `<div class="result-cards">${items.map(([cls,label,value])=>`<div class="result-card ${cls}"><span>${label}</span><strong>${value}</strong></div>`).join("")}</div>`;
+}
 function renderPhaseComplete(){
   const done=currentPhase(), next=PHASES[game.mission];
   const harder=[];
-  if(next.time)harder.push(`${next.time} segundos para cada resposta`);
-  harder.push(`${next.reward} moedas por acerto`);
+  if(next.time)harder.push(`⏱ ${next.time} segundos por carta`);
+  harder.push(`<img class="inline-coin" src="${COIN_IMG}" alt=""> ${next.reward} moedas por acerto`);
   app.innerHTML=`
     <section class="end-screen">
-      <div class="end-art">⭐</div>
+      <div class="result-mascot">${mascot("animada","jump")}</div>
       <span class="eyebrow">FASE ${done.id} CONCLUÍDA</span>
       <h1>${done.title} <em>completa!</em></h1>
-      <p>Próxima fase: <strong>${next.title}</strong>. ${next.subtitle}</p>
+      ${resultCards([
+        ["card-gold","MOEDAS",`<img src="${COIN_IMG}" alt=""> ${game.coins}`],
+        ["card-coral","VIDAS",`♥ ${game.lives}`],
+        ["card-purple","MELHOR COMBO",`🔥 ${game.bestStreak}`]
+      ])}
       <div class="next-phase">
-        <span class="stat-caption">DIFICULDADE</span><span class="difficulty">${difficultyDots(next.id)}</span>
+        <span class="next-phase-label">PRÓXIMA FASE</span>
+        <strong>${next.title}</strong>
+        <span class="difficulty" aria-label="Dificuldade ${next.id} de ${PHASES.length}">${difficultyDots(next.id)}</span>
         <span class="next-phase-info">${harder.join(" · ")}</span>
       </div>
-      <div class="end-stats"><span><img src="${COIN_IMG}" alt=""> ${game.coins} moedas</span><span class="hearts">${hearts()}</span></div>
-      <button class="game-btn" id="nextPhaseBtn">COMEÇAR FASE ${next.id} →</button>
-      <button class="game-btn end-back" id="homeEnd">← Voltar ao início</button>
+      <button class="game-btn" id="nextPhaseBtn">COMEÇAR FASE ${next.id}</button>
+      <button class="game-btn end-back" id="homeEnd">Voltar ao início</button>
     </section>`;
   document.getElementById("nextPhaseBtn").onclick=()=>startPhase(next.id);
   document.getElementById("homeEnd").onclick=goHome;
+  burst(2);
 }
 
 function renderEnd(){
@@ -539,16 +726,20 @@ function renderEnd(){
   if(victory)finalizarCartas('vitoria');
   app.innerHTML=`
     <section class="end-screen">
-      <div class="end-art">${victory?"🏆":"💔"}</div>
+      <div class="result-mascot">${mascot(victory?"animada":"pensando",victory?"jump":"idle")}</div>
       <span class="eyebrow">${victory?"TODAS AS FASES CONCLUÍDAS":"FIM DE JOGO · FASE "+game.mission}</span>
       <h1>${victory?"Você mandou <em>bem!</em>":"Não desista, <em>"+escapeHtml(player?.nickname||"agente")+"!</em>"}</h1>
-      <p>${victory?`Você completou as ${PHASES.length} fases. Agora, uma nova aventura espera por você!`:"Suas vidas acabaram. Tente esta fase de novo com as vidas cheias!"}</p>
-      <div class="end-stats"><span><img src="${COIN_IMG}" alt=""> ${game.coins} moedas</span><span>✦ ${game.completed}/${game.total} cartas</span></div>
-      ${victory?'<button class="game-btn" id="runnerFromEnd">FASE BÔNUS: CORRIDA DA BOLHA →</button>':'<button class="game-btn" id="retryBtn">TENTAR A FASE DE NOVO ↻</button>'}
-      ${victory?'<button class="game-btn end-back" id="retryBtn">↻ Jogar cartas de novo</button>':''}
-      <button class="game-btn end-back" id="homeEnd">← Voltar ao início</button>
+      <p>${victory?`Você completou as ${PHASES.length} fases e agora sabe se proteger na internet. Que tal a fase bônus?`:"Suas vidas acabaram, mas cada erro ensinou algo novo. Tente esta fase de novo com as vidas cheias!"}</p>
+      ${resultCards([
+        ["card-gold","MOEDAS",`<img src="${COIN_IMG}" alt=""> ${game.coins}`],
+        ["card-teal","CARTAS",`✓ ${game.completed}/${game.total}`],
+        ["card-purple","MELHOR COMBO",`🔥 ${game.bestStreak}`]
+      ])}
+      ${victory?'<button class="game-btn" id="runnerFromEnd">FASE BÔNUS: CORRIDA DA BOLHA</button>':'<button class="game-btn" id="retryBtn">TENTAR A FASE DE NOVO</button>'}
+      ${victory?'<button class="game-btn end-back" id="retryBtn">Jogar as cartas de novo</button>':''}
+      <button class="game-btn end-back" id="homeEnd">Voltar ao início</button>
     </section>`;
-  if(victory)document.getElementById("runnerFromEnd").onclick=openRunner;
+  if(victory){document.getElementById("runnerFromEnd").onclick=openRunner;burst(4);}
   document.getElementById("retryBtn").onclick=victory?restart:retryPhase;
   document.getElementById("homeEnd").onclick=goHome;
 }
@@ -692,6 +883,7 @@ function openRunner(){renderRunner();}
 
 function renderRunner(){
   const best=bestScore();
+  document.body.dataset.screen="runner";
   app.innerHTML=`
     <section class="runner-screen">
       <div class="play-topline"><span class="mission-label"><span class="mission-dot"></span> FASE BÔNUS · MINI GAME</span><span class="remaining-label">RECORDE: ${best} M</span></div>
@@ -761,9 +953,16 @@ document.getElementById("backBtn").onclick=goHome;
 })();
 soundBtn.onclick=toggleSound;
 narrateBtn.onclick=toggleNarrate;
-updateNarrateBtn();
+calmBtn.onclick=toggleCalm;
+// Logo do cabeçalho: a Bolhinha (o emoji 🫧 não existe no Windows 10)
+document.querySelector(".brand-mark").innerHTML=mascot("feliz");
+updateSoundBtn();updateNarrateBtn();updateCalm();
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape")closeModal();
+  // Enter ou espaço também avançam depois do feedback da carta
+  if(awaitingNext&&(e.key==="Enter"||e.code==="Space")&&modal.classList.contains("hidden")){
+    e.preventDefault();nextCard();return;
+  }
   if(e.code==="Space"||e.code==="ArrowUp"){
     e.preventDefault();
     if(!modal.classList.contains("hidden"))return;
