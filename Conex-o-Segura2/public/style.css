@@ -91,8 +91,7 @@ button{cursor:pointer}
 .site-header{height:80px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .wordmark{border:0;background:transparent;display:flex;gap:12px;align-items:center;font-family:var(--font-display);font-size:13px;font-weight:700;line-height:1;text-align:left;letter-spacing:.5px;padding:6px;border-radius:var(--r-md)}
 .wordmark strong{display:block;font-size:17px;font-weight:800;color:var(--teal)}
-.brand-mark{width:46px;height:46px;flex:none;display:grid;place-items:center}
-.brand-mark .m-bubble,.brand-mark .m-shadow{display:none}
+.brand-mark{width:46px;height:46px;flex:none;object-fit:contain}
 .header-actions{display:flex;gap:8px;align-items:center}
 .icon-btn{width:44px;height:44px;border:2px solid var(--line);background:var(--surface);border-radius:14px;color:var(--text);font-weight:800;font-size:18px;
   box-shadow:0 3px 0 var(--line);transition:transform .08s,box-shadow .08s,background .15s}
@@ -118,16 +117,16 @@ button{cursor:pointer}
 .end-back{--btn:var(--surface);--btn-lip:var(--line);margin-top:10px;color:var(--teal-2);border:2px solid var(--line);font-size:16px;padding:11px 22px}
 .end-back:hover{filter:none;background:var(--surface-2)}
 
-/* ---------- Mascote (Bolhinha) e balão de fala ---------- */
-.mascot{display:inline-block;width:100%;line-height:0}
-.mascot svg{width:100%;height:auto;overflow:visible}
-.m-line{fill:none;stroke:#0B3B4A;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
-.m-pupil,.m-mouth{fill:#0B3B4A}
-.mascot.idle svg{animation:mascotBob 3.2s ease-in-out infinite}
-.mascot.jump svg{animation:mascotJump .8s cubic-bezier(.34,1.56,.64,1)}
-.mascot.wobble svg{animation:mascotWobble .8s ease-in-out}
-.m-bubble{animation:bubbleFloat 3s ease-in-out infinite}
-.m-bubble-2{animation-delay:-1.4s}
+/* ---------- Personagem do jogador (avatar + mão animada) e balão de fala ---------- */
+.persona{position:relative;display:block;width:100%;aspect-ratio:1;line-height:1;container-type:inline-size}
+.persona img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;border:3px solid var(--teal);background:var(--surface-2);box-shadow:0 4px 0 var(--teal-lip)}
+.persona-hand{position:absolute;right:-16%;bottom:-8%;font-size:28px;font-size:46cqw;line-height:1;filter:drop-shadow(0 3px 0 rgba(0,0,0,.25));transform-origin:50% 90%}
+.hand-joinha{animation:handPop .5s cubic-bezier(.34,1.56,.64,1) backwards,thumbBob 1.6s .5s ease-in-out infinite}
+.hand-explica{animation:handPop .5s cubic-bezier(.34,1.56,.64,1) backwards,fingerWag 1.2s .5s ease-in-out infinite}
+.hand-aceno{animation:handPop .5s cubic-bezier(.34,1.56,.64,1) backwards,handWave 1.4s .5s ease-in-out 3}
+.hand-forca{animation:handPop .5s cubic-bezier(.34,1.56,.64,1) backwards,flexPulse 1.4s .5s ease-in-out infinite}
+.persona.cheer img{animation:personaJump .8s cubic-bezier(.34,1.56,.64,1)}
+.persona.talk img{animation:personaTalk .9s ease-in-out 2}
 .speech{position:relative;padding:12px 16px;border:2px solid var(--line);border-radius:18px;background:var(--surface);color:var(--text);
   font-size:16px;font-weight:700;line-height:1.4;box-shadow:0 3px 0 var(--line)}
 .speech:before{content:"";position:absolute;left:-9px;top:50%;width:14px;height:14px;margin-top:-7px;background:var(--surface);
@@ -136,9 +135,9 @@ button{cursor:pointer}
 
 /* ---------- Tela inicial ---------- */
 .start-screen{text-align:center;padding:12px 0 40px;display:flex;flex-direction:column;align-items:center}
-.hero{display:flex;align-items:center;gap:18px;max-width:560px}
-.hero-mascot{flex:none;width:150px}
-.speech-hero{text-align:left;font-size:17px}
+.hero-logo{width:150px;height:150px;filter:drop-shadow(0 10px 26px rgba(0,201,167,.3));animation:logoFloat 4s ease-in-out infinite}
+.hero-greet{display:flex;align-items:center;gap:14px;margin-top:20px;text-align:left}
+.hero-greet .guide-char{width:62px}
 .start-copy h1{font-size:60px}
 .start-copy p{max-width:520px;margin:0 auto;color:var(--text-soft);font-weight:600;font-size:17px;line-height:1.55}
 .start-cta{margin-top:24px;min-width:300px;font-size:21px;padding:18px 34px}
@@ -193,7 +192,8 @@ body[data-screen="playing"] #backBtn,body[data-screen="playing"] .header-wallet{
 .player-tag{font-weight:800;font-size:13px}
 
 .lesson-guide{display:flex;align-items:center;gap:14px;margin:6px 0 12px}
-.guide-mascot{flex:none;width:72px}
+.guide-char{flex:none;width:60px}
+.guide-char .persona-hand{right:-22%}
 
 /* Mesa e carta */
 .stats-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:16px 0}
@@ -256,7 +256,7 @@ body[data-screen="playing"] #backBtn,body[data-screen="playing"] .header-wallet{
 
 /* ---------- Telas de resultado (fase concluída, vitória, fim de jogo) ---------- */
 .end-screen{min-height:620px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 0 30px}
-.result-mascot{width:150px;margin-bottom:6px}
+.result-char{width:130px;margin:0 auto 14px}
 .end-art{width:140px;height:140px;border-radius:42px;display:grid;place-items:center;font-size:68px;margin-bottom:12px;background:var(--gold);box-shadow:0 6px 0 var(--gold-lip)}
 .end-screen h1{font-size:50px}
 .end-screen p{max-width:500px;color:var(--text-soft);font-weight:600;line-height:1.55}
@@ -383,10 +383,14 @@ body[data-screen="playing"] #backBtn,body[data-screen="playing"] .header-wallet{
 @keyframes blink{50%{opacity:.45}}
 @keyframes popIn{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
 @keyframes levelPop{0%{opacity:0;transform:translate(-50%,-12px) scale(.85)}12%{opacity:1;transform:translate(-50%,0) scale(1.06)}20%{transform:translate(-50%,0) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-6px)}}
-@keyframes mascotBob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
-@keyframes mascotJump{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-18px) scale(1.08,.94)}55%{transform:translateY(0) scale(.94,1.06)}75%{transform:translateY(-5px)}100%{transform:translateY(0) scale(1)}}
-@keyframes mascotWobble{0%,100%{transform:rotate(0)}20%{transform:rotate(-9deg)}40%{transform:rotate(7deg)}60%{transform:rotate(-4deg)}80%{transform:rotate(2deg)}}
-@keyframes bubbleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes logoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes personaJump{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-14px) scale(1.06,.95)}55%{transform:translateY(0) scale(.96,1.04)}75%{transform:translateY(-4px)}100%{transform:translateY(0) scale(1)}}
+@keyframes personaTalk{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-3px) rotate(-3deg)}50%{transform:translateY(0) rotate(0)}75%{transform:translateY(-3px) rotate(3deg)}}
+@keyframes handPop{0%{opacity:0;transform:scale(0) rotate(-30deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes thumbBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-10deg)}}
+@keyframes fingerWag{0%,100%{transform:rotate(0)}25%{transform:rotate(-16deg)}75%{transform:rotate(16deg)}}
+@keyframes handWave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-20deg)}40%,80%{transform:rotate(18deg)}}
+@keyframes flexPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 @keyframes cardInvite{0%,70%,100%{transform:translateY(0) rotate(0)}78%{transform:translateY(-6px) rotate(-2deg)}86%{transform:translateY(-6px) rotate(2deg)}94%{transform:translateY(0) rotate(0)}}
 
 @media (prefers-reduced-motion:reduce){
@@ -398,12 +402,11 @@ body[data-screen="playing"] #backBtn,body[data-screen="playing"] .header-wallet{
   .site-header,.site-footer,.start-screen,.play-screen,.runner-screen,.end-screen{width:calc(100% - 28px)}
   .site-header{height:64px}
   .wordmark>span:last-child{display:none}
-  .brand-mark{width:40px;height:40px;font-size:22px}
+  .brand-mark{width:40px;height:40px}
   .icon-btn{width:40px;height:40px;font-size:16px}
   .start-screen{padding-top:4px}
-  .hero{gap:12px}
-  .hero-mascot{width:108px}
-  .speech-hero{font-size:15px}
+  .hero-logo{width:118px;height:118px}
+  .hero-greet{margin-top:16px}
   .start-copy h1{font-size:44px}
   .start-copy p{font-size:16px}
   .start-cta{width:100%;min-width:0}
@@ -428,7 +431,7 @@ body[data-screen="playing"] #backBtn,body[data-screen="playing"] .header-wallet{
   .lesson-title h1{font-size:24px}
   .lesson-phase{font-size:11px}
   .lesson-guide{margin:4px 0 10px;gap:10px}
-  .guide-mascot{width:54px}
+  .guide-char{width:50px}
   .speech{font-size:14px;padding:9px 12px}
   .deck-stage{height:calc(var(--card-h) + 28px)}
   .card-question{font-size:16px}
@@ -438,7 +441,7 @@ body[data-screen="playing"] #backBtn,body[data-screen="playing"] .header-wallet{
   .answer-icon{width:36px;height:36px;font-size:20px}
   .end-screen{min-height:0}
   .end-screen h1{font-size:36px}
-  .result-mascot{width:118px}
+  .result-char{width:104px}
   .result-cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
   .result-card strong{font-size:20px;padding:12px 4px}
   .result-card span{font-size:9px;padding:5px 4px}
@@ -454,7 +457,7 @@ body[data-screen="playing"] #backBtn,body[data-screen="playing"] .header-wallet{
   .stat-chip{font-size:16px;padding:4px 9px}
   .combo-bar{padding:4px 12px}
   .lesson-guide{margin:2px 0 6px}
-  .guide-mascot{width:42px}
+  .guide-char{width:42px}
   .speech{font-size:13px;padding:7px 10px}
   .card-question-icon{width:40px;height:40px;font-size:24px;margin:8px 0 4px}
   .card-front{padding:12px 14px 10px}
