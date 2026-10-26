@@ -1,0 +1,10 @@
+﻿LINK DO JOGO
+
+Nome do Jogo:
+Conexão Segura
+
+Link de acesso (público, hospedado na Vercel):
+https://conexao-segura2.vercel.app
+
+Acesso exclusivo para professores:
+O jogo não possui acesso separado para professores. Todos usam o mesmo link acima.

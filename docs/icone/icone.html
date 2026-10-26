@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ícone animado · Conexão Segura</title>
+<!-- Fonte do GIF do pack (pack/icone-conexao-segura.gif).
+     Aberto no navegador, anima sozinho. Com #manual no endereço, fica parado
+     esperando setT(t) (0 a 1), que é como os quadros do GIF são tirados. -->
+<link rel="stylesheet" href="../../Conex-o-Segura2/public/fonts.css">
+<style>
+  html,body{margin:0;background:#0F1B2E}
+  body{display:grid;place-items:center;min-height:100vh}
+  svg{display:block;width:400px;height:400px}
+  .title{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:41px}
+</style>
+</head>
+<body>
+<svg id="icon" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10B6D6"/>
+      <stop offset=".55" stop-color="#2F7FE0"/>
+      <stop offset="1" stop-color="#6A4FD6"/>
+    </linearGradient>
+    <!-- mesmo degradê do logo (assets/logo.svg), em coordenadas do logo -->
+    <linearGradient id="leaf" gradientUnits="userSpaceOnUse" x1="0" y1="100" x2="0" y2="8">
+      <stop offset="0" stop-color="#00977D"/>
+      <stop offset="1" stop-color="#3EE6C4"/>
+    </linearGradient>
+    <radialGradient id="halo">
+      <stop offset="0" stop-color="#3EE6C4" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#3EE6C4" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <path id="shieldPath" d="M200 34C238 56 276 62 300 60V158C300 228 256 270 200 294C144 270 100 228 100 158V60C124 62 162 56 200 34Z"/>
+    <clipPath id="shieldClip"><use href="#shieldPath"/></clipPath>
+  </defs>
+
+  <!-- fundo e ondas de "conexão" saindo do escudo -->
+  <rect width="400" height="400" fill="url(#sky)"/>
+  <g id="waves" fill="none" stroke="#FFFFFF"></g>
+  <g id="sparkles"></g>
+
+  <!-- escudo com "degrau" 3D, como os botões do jogo -->
+  <use href="#shieldPath" transform="translate(0 9)" fill="#0B1626" opacity=".45"/>
+  <use href="#shieldPath" fill="#0F1B2E" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round"/>
+  <g clip-path="url(#shieldClip)">
+    <circle id="haloCircle" cx="200" cy="140" r="105" fill="url(#halo)"/>
+  </g>
+
+  <!-- árvore de circuito (mesmos traços do logo), escala 1.8 -->
+  <g id="tree" transform="translate(110 62) scale(1.8)">
+    <g fill="none" stroke="url(#leaf)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50 94V27"/>
+      <path d="M50 94H40M50 94H60"/>
+      <path d="M50 66L40 56V35"/>
+      <path d="M40 50L30 40V30"/>
+      <path d="M50 78L22 50V44"/>
+      <path d="M50 61L60 51V37"/>
+      <path d="M60 47L70 37V31"/>
+      <path d="M50 72L73 49"/>
+    </g>
+    <!-- pulsos de luz (preenchidos pelo script) -->
+    <g id="pulses" fill="none" stroke="#FFE66D" stroke-width="3.4" stroke-linecap="round" filter="url(#glow)"></g>
+    <g id="leaves" filter="url(#glow)">
+      <ellipse cx="50" cy="17" rx="4.8" ry="9.2"/>
+      <ellipse cx="40" cy="26" rx="4.4" ry="8.2"/>
+      <ellipse cx="60" cy="28" rx="4.4" ry="8.2"/>
+      <ellipse cx="70" cy="23" rx="4" ry="7.2"/>
+      <ellipse cx="22" cy="36" rx="4" ry="7.2"/>
+      <ellipse cx="78" cy="44" rx="3.8" ry="7.2" transform="rotate(45 78 44)"/>
+      <circle cx="30" cy="26" r="3.6"/>
+    </g>
+    <g fill="#0F1B2E" stroke="url(#leaf)" stroke-width="3">
+      <circle cx="37" cy="94" r="3"/>
+      <circle cx="63" cy="94" r="3"/>
+    </g>
+  </g>
+
+  <!-- selos: certo (seguro) e cadeado -->
+  <g id="badgeCheck">
+    <circle r="27" cy="5" fill="#3E9A06"/>
+    <circle r="27" fill="#58CC02" stroke="#FFFFFF" stroke-width="5"/>
+    <path d="M-11 1L-3 9L12 -8" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="badgeLock">
+    <circle r="27" cy="5" fill="#C98C00"/>
+    <circle r="27" fill="#FFB800" stroke="#FFFFFF" stroke-width="5"/>
+    <path d="M-7 -3V-8A7 7 0 0 1 7 -8V-3" fill="none" stroke="#0F1B2E" stroke-width="4.5" stroke-linecap="round"/>
+    <rect x="-12" y="-4" width="24" height="18" rx="4" fill="#0F1B2E"/>
+    <circle cy="4" r="3" fill="#FFB800"/>
+  </g>
+
+  <!-- nome do jogo -->
+  <g class="title" text-anchor="middle">
+    <text x="200" y="363" fill="#0B1626" opacity=".55">CONEXÃO <tspan>SEGURA</tspan></text>
+    <text x="200" y="357" fill="#FFFFFF">CONEXÃO <tspan fill="#FFE66D">SEGURA</tspan></text>
+  </g>
+</svg>
+
+<script>
+  const NS = 'http://www.w3.org/2000/svg';
+  const TAU = Math.PI * 2;
+  const mod1 = x => ((x % 1) + 1) % 1;
+
+  // Caminhos da raiz até cada folha; cada pulso acende a folha do mesmo índice
+  const ROUTES = [
+    'M50 94V27',
+    'M50 94V66L40 56V35',
+    'M50 94V61L60 51V37',
+    'M50 94V61L60 51V47L70 37V31',
+    'M50 94V78L22 50V44',
+    'M50 94V72L73 49',
+    'M50 94V66L40 56V50L30 40V30'
+  ];
+  const TRAVEL = 0.34;                       // fração do ciclo que o pulso leva para subir
+  const OFFSETS = [0, .43, .14, .57, .29, .71, .86];
+  const LEAF_OFF = [62, 230, 196], LEAF_HOT = [255, 230, 109];
+
+  const pulses = document.getElementById('pulses');
+  const routeEls = ROUTES.map(d => {
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', d);
+    pulses.appendChild(p);
+    return {el: p, len: p.getTotalLength()};
+  });
+  const leaves = [...document.querySelectorAll('#leaves > *')];
+
+  const waves = document.getElementById('waves');
+  const waveEls = [0, 1, 2].map(() => waves.appendChild(document.createElementNS(NS, 'circle')));
+
+  const SPARKS = [[42, 196, 9, .0], [358, 206, 8, .33], [56, 286, 6, .6], [346, 300, 7, .15],
+                  [150, 18, 6, .5], [262, 22, 7, .8], [24, 120, 5, .7], [378, 140, 5, .25]];
+  const sparkles = document.getElementById('sparkles');
+  const sparkEls = SPARKS.map(([x, y, s]) => {
+    const g = document.createElementNS(NS, 'path');
+    g.setAttribute('d', `M0 ${-s}Q0 0 ${s} 0Q0 0 0 ${s}Q0 0 ${-s} 0Q0 0 0 ${-s}Z`);
+    g.setAttribute('fill', '#FFFFFF');
+    sparkles.appendChild(g);
+    return g;
+  });
+
+  const mix = (a, b, k) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',')})`;
+
+  window.setT = t => {
+    // pulsos sobem pelos galhos e acendem a folha quando chegam
+    routeEls.forEach(({el, len}, i) => {
+      const phase = mod1(t - OFFSETS[i]);
+      const dash = 9;
+      if (phase < TRAVEL) {
+        const head = (phase / TRAVEL) * (len + dash);
+        el.setAttribute('stroke-dasharray', `${dash} ${len + 40}`);
+        el.setAttribute('stroke-dashoffset', String(dash - head));
+        el.setAttribute('opacity', '1');
+      } else el.setAttribute('opacity', '0');
+      const sinceArrive = mod1(t - OFFSETS[i] - TRAVEL);
+      const k = Math.max(0, 1 - sinceArrive / 0.28);
+      leaves[i].setAttribute('fill', k > 0 ? mix(LEAF_OFF, LEAF_HOT, k * k) : 'url(#leaf)');
+    });
+
+    // ondas saindo do escudo
+    waveEls.forEach((c, i) => {
+      const p = mod1(t + i / 3);
+      c.setAttribute('cx', 200); c.setAttribute('cy', 165);
+      c.setAttribute('r', String(130 + p * 150));
+      c.setAttribute('stroke-width', String(6 - p * 4));
+      c.setAttribute('opacity', String(.22 * (1 - p)));
+    });
+
+    // brilhinhos
+    sparkEls.forEach((g, i) => {
+      const [x, y, , ph] = SPARKS[i];
+      const v = Math.max(0, Math.sin(TAU * (t + ph)));
+      g.setAttribute('transform', `translate(${x} ${y}) scale(${(.35 + .65 * v).toFixed(3)})`);
+      g.setAttribute('opacity', (.25 + .75 * v).toFixed(3));
+    });
+
+    // selos balançando de leve
+    const bob = (ph) => 5 * Math.sin(TAU * (t + ph));
+    document.getElementById('badgeCheck').setAttribute('transform', `translate(84 ${92 + bob(0)})`);
+    document.getElementById('badgeLock').setAttribute('transform', `translate(316 ${98 + bob(.5)})`);
+
+    // brilho atrás da árvore respira
+    document.getElementById('haloCircle').setAttribute('opacity', (.75 + .25 * Math.sin(TAU * t)).toFixed(3));
+  };
+
+  window.LOOP_MS = 3600;
+  if (location.hash === '#manual') setT(0);
+  else (function tick(now) { setT(mod1(now / LOOP_MS)); requestAnimationFrame(tick); })(0);
+</script>
+</body>
+</html>

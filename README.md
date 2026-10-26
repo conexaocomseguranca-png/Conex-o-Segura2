@@ -71,9 +71,12 @@ Arquitetura, rotas da API e tabelas do banco: [docs/ARQUITETURA.md](docs/ARQUITE
 ```
 .
 ├── README.md                 Este arquivo (apresentação do projeto)
+├── pack/                     Pack para o portal Cruzeiro Hub (ícone, textos e ZIP)
 ├── docs/
 │   ├── PROJETO.md            Intuito, público-alvo e decisões do projeto
-│   └── ARQUITETURA.md        Como o sistema funciona por dentro
+│   ├── ARQUITETURA.md        Como o sistema funciona por dentro
+│   ├── icone/                Fonte do ícone animado do pack
+│   └── quickstart/           Guia rápido em PDF (com a fonte e os prints)
 └── Conex-o-Segura2/          Aplicação publicada pela Vercel
     ├── public/               Jogo (HTML, CSS, JS e imagens)
     ├── api/                  Função serverless (/api/jogo)
@@ -82,6 +85,17 @@ Arquitetura, rotas da API e tabelas do banco: [docs/ARQUITETURA.md](docs/ARQUITE
     ├── scripts/              Setup do banco pelo terminal
     └── LEIA-ME.md            Passo a passo de publicação e testes locais
 ```
+
+## Pack para o portal Cruzeiro Hub
+
+A pasta `pack/` segue as instruções do pack de jogos educacionais digitais:
+
+| Arquivo | Conteúdo |
+|---------|----------|
+| `icone-conexao-segura.gif` | Ícone animado do jogo (GIF, 400 × 400 px) |
+| `apresentacao-e-classificacao.txt` | Nome, descrição, área, habilidades e diferenciais |
+| `link-do-jogo.txt` | Link público do jogo na Vercel |
+| `Pack-ConexaoSegura.zip` | Os três arquivos acima num único ZIP, pronto para entregar |
 
 ## Executar e publicar
 
