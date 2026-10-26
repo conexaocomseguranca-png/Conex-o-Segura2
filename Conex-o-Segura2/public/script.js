@@ -323,16 +323,35 @@ function floatText(el,text,kind){
   const f=document.createElement("span");f.className="float-text "+kind;f.textContent=text;
   el.appendChild(f);setTimeout(()=>f.remove(),1100);
 }
-// Fala da mascote acima da carta: diz sempre qual é o próximo passo
+// ---------- Personagem do jogador ----------
+// O avatar escolhido vira o "boneco" que fala com a criança. Uma mão animada mostra o gesto:
+// joinha (acertou), dedo levantado (explicando o erro), aceno (oi) e força (tente de novo).
+const GESTURES = {joinha:"\u{1F44D}", explica:"☝", aceno:"\u{1F44B}", forca:"\u{1F4AA}"};
+// Tons de pele dos avatares humanos, na ordem de AVATARS (negro, parda, japonês, loiro)
+const SKIN_TONES = ["\u{1F3FE}","\u{1F3FD}","\u{1F3FC}","\u{1F3FB}"];
+function handEmoji(gesture){
+  const human=!ownedAnimalAvatar(shopWallet.avatar);
+  const tone=human?SKIN_TONES[player?.avatar ?? 0]||"":"";
+  // Sem tom de pele, o ☝ precisa do seletor de emoji para não virar símbolo de texto
+  return GESTURES[gesture]+(tone||(gesture==="explica"?"️":""));
+}
+function playerCharacter(gesture="",extra=""){
+  return `<span class="persona ${extra}">
+    <img src="${playerAvatar()}" alt="Seu personagem">
+    ${gesture?`<span class="persona-hand hand-${gesture}" aria-hidden="true">${handEmoji(gesture)}</span>`:""}
+  </span>`;
+}
+
+// Fala do personagem acima da carta: diz sempre qual é o próximo passo
 function guideText(){
   const phase=currentPhase();
   if(!revealed)return "Toque na carta para descobrir a situação!";
   return phase.time?`Você tem ${phase.time} segundos. Essa situação é <b>segura</b> ou <b>perigosa</b>?`:"Leia com calma. Essa situação é <b>segura</b> ou <b>perigosa</b>?";
 }
-function setGuide(mood,html){
+function setGuide(gesture,html){
   const g=document.getElementById("lessonGuide");
   if(!g)return;
-  g.querySelector(".guide-mascot").innerHTML=mascot(mood,mood==="triste"?"wobble":"jump");
+  g.querySelector(".guide-char").innerHTML=playerCharacter(gesture);
   g.querySelector(".speech").innerHTML=html;
 }
 
@@ -398,9 +417,10 @@ const FX_ICONS = {
   bad:'<circle class="fx-ring" cx="26" cy="26" r="23"/><path class="fx-mark" d="M18 18l16 16"/><path class="fx-mark fx-mark-2" d="M34 18L18 34"/>',
   time:'<circle class="fx-ring" cx="26" cy="26" r="23"/><path class="fx-mark" d="M26 14v13l8 5"/>'
 };
-// Feedback em duas etapas (no estilo Duolingo):
+// Feedback em duas etapas:
 // 1) o ícone animado aparece em cima da carta (✓, ✗ ou relógio);
-// 2) uma barra se estica no rodapé e sobe como um painel com a explicação.
+// 2) no centro da tela, uma barra se estica e abre um painel onde o personagem do jogador
+//    explica a resposta: com joinha 👍 se acertou, com o dedo levantado ☝️ se errou.
 function showFeedback(card,correct,timedOut,prevStreak,tierUp,earned){
   const kind=timedOut?"time":correct?"good":"bad";
   const tier=comboTier(),t=COMBO_TIERS[tier];
@@ -415,7 +435,7 @@ function showFeedback(card,correct,timedOut,prevStreak,tierUp,earned){
   if(!correct)chips.push(`<span class="sheet-chip chip-life">♥ -1 vida</span>`);
   if(!correct&&prevStreak>=2)chips.push(`<span class="sheet-chip chip-lost">💔 sequência de ${prevStreak} acabou</span>`);
   const nextLabel=game.lives===0?"VER RESULTADO":game.queue.length===0?"CONCLUIR FASE":"CONTINUAR";
-  const mood=correct?(tier>=2?"animada":"feliz"):timedOut?"pensando":"triste";
+  const gesture=correct?"joinha":"explica";
   const emoji=correct?t.emoji:timedOut?"⏰":"😵";
   const nSparks=correct?8+tier*4:0;
   const sparks=Array.from({length:nSparks},(_,i)=>`<i style="--a:${(360/nSparks*i).toFixed(0)}deg;--d:${(.25+Math.random()*.15).toFixed(2)}s;--r:${70+tier*12+Math.random()*30|0}px"></i>`).join("");
@@ -434,31 +454,30 @@ function showFeedback(card,correct,timedOut,prevStreak,tierUp,earned){
         </div>
       </div>`);
   }
-  // 2) Painel com a explicação
-  document.getElementById("answerSheet")?.remove();
+  // 2) Painel no centro da tela, com o personagem explicando
+  document.getElementById("answerPop")?.remove();
   document.body.insertAdjacentHTML("beforeend",`
-    <div class="answer-sheet sheet-${kind}" id="answerSheet" data-tier="${correct?tier:0}" role="status" aria-live="polite">
-      <div class="sheet-inner">
-        <div class="sheet-mascot">${mascot(mood,correct?"jump":"wobble")}</div>
-        <div class="sheet-body">
-          <span class="sheet-verdict">${card.safe?"🛡️ SITUAÇÃO SEGURA":"⚠ SITUAÇÃO PERIGOSA"}</span>
-          <strong class="sheet-title">${head}</strong>
-          <p class="sheet-why">${why}</p>
-          ${chips.length?`<div class="sheet-chips">${chips.join("")}</div>`:""}
+    <div class="answer-pop pop-${kind}" id="answerPop" data-tier="${correct?tier:0}" role="dialog" aria-modal="true" aria-labelledby="popTitle">
+      <div class="pop-wrap">
+        <div class="pop-char">${playerCharacter(gesture,correct?"cheer":"talk")}</div>
+        <div class="pop-card">
+          <div class="pop-content">
+            <span class="pop-verdict">${card.safe?"🛡️ SITUAÇÃO SEGURA":"⚠ SITUAÇÃO PERIGOSA"}</span>
+            <strong class="pop-title" id="popTitle">${head}</strong>
+            <p class="pop-why">${why}</p>
+            ${chips.length?`<div class="pop-chips">${chips.join("")}</div>`:""}
+            <button class="game-btn pop-next" id="nextCardBtn">${nextLabel}</button>
+          </div>
         </div>
-        <button class="game-btn sheet-next" id="nextCardBtn">${nextLabel}</button>
       </div>
     </div>`);
   document.getElementById("nextCardBtn").onclick=nextCard;
-  // Espaço extra no fim da tela para o painel não cobrir a carta
-  const sheet=document.getElementById("answerSheet"),screen=document.querySelector(".play-screen");
-  if(screen)screen.style.paddingBottom=(sheet.querySelector(".sheet-inner").offsetHeight+40)+"px";
   // Foco no botão só depois que o painel abriu, para não "pular" a animação
   clearTimeout(timer);
-  timer=setTimeout(()=>document.getElementById("nextCardBtn")?.focus({preventScroll:true}),1000);
+  timer=setTimeout(()=>document.getElementById("nextCardBtn")?.focus({preventScroll:true}),1200);
 
-  // Mascote, vidas, moedas e progresso reagem na hora
-  setGuide(mood,correct?"Mandou bem! 🎉":timedOut?"Sem pressa: da próxima vez você consegue.":"Tudo bem errar. Vamos aprender juntos!");
+  // Personagem, vidas, moedas e progresso reagem na hora
+  setGuide(gesture,correct?"Mandou bem! 🎉":timedOut?"Sem pressa: da próxima vez você consegue.":"Tudo bem errar. Vamos aprender juntos!");
   const lives=document.getElementById("livesCount");
   if(lives)lives.textContent=game.lives;
   if(!correct){replay(document.getElementById("livesChip"),"hit");floatText(document.getElementById("livesChip"),"-1","minus");}
@@ -506,7 +525,7 @@ function playerAvatar(){
 
 function render(){
   // Painel de explicação e selo de combo pertencem só à carta atual
-  document.getElementById("answerSheet")?.remove();
+  document.getElementById("answerPop")?.remove();
   document.querySelector(".combo-toast")?.remove();
   document.body.dataset.screen=game.status;
   if(game.status==="start")renderStart();
@@ -520,18 +539,18 @@ function render(){
   updateWallet();applyShopEquipment();
 }
 function renderStart(){
-  const hello=player?`Oi, <b>${escapeHtml(player.nickname)}</b>! Pronto para mais uma missão?`:"Oi! Eu sou a <b>Bolhinha</b>. Vamos aprender a se proteger na internet?";
   app.innerHTML=`
     <section class="start-screen">
-      <div class="hero">
-        <div class="hero-mascot">${mascot("feliz","idle")}</div>
-        <div class="speech speech-hero">${hello}</div>
-      </div>
+      <img class="hero-logo" src="assets/logo.svg" alt="Logo do Conexão Segura">
       <div class="start-copy">
         <span class="eyebrow">UMA AVENTURA DE SEGURANÇA DIGITAL</span>
         <h1>Conexão <em>Segura</em></h1>
         <p>Vire as cartas, decida se cada situação é segura ou perigosa e descubra como navegar com segurança.</p>
       </div>
+      ${player?`<div class="hero-greet">
+        <div class="guide-char">${playerCharacter("aceno")}</div>
+        <div class="speech">Oi, <b>${escapeHtml(player.nickname)}</b>! Pronto para mais uma missão?</div>
+      </div>`:""}
       <button class="game-btn start-cta" id="startBtn">▶ COMEÇAR A JOGAR</button>
       <div class="start-footnote"><span>📚 ${PHASES.length} fases</span><span>🃏 ${CARDS_PER_PHASE} cartas por fase</span><span>♥ ${MAX_LIVES} vidas</span></div>
       <div class="mode-grid">
@@ -636,7 +655,7 @@ function renderCards(){
       <div class="combo-bar" id="comboBar">${comboBar()}</div>
 
       <div class="lesson-guide" id="lessonGuide">
-        <div class="guide-mascot">${mascot(revealed?"pensando":"feliz")}</div>
+        <div class="guide-char">${playerCharacter()}</div>
         <div class="speech">${guideText()}</div>
       </div>
 
@@ -679,7 +698,7 @@ function renderCards(){
     document.getElementById("questionCard").setAttribute("aria-label","Carta revelada");
     ["safeBtn","dangerBtn"].forEach(id=>document.getElementById(id).disabled=false);
     document.getElementById("cardTimer")?.classList.remove("idle");
-    setGuide("pensando",guideText());
+    setGuide("",guideText());
     startCardTimer();speak(card.category+". "+card.question);
   };
   document.getElementById("safeBtn").onclick=()=>answerCard(true);
@@ -699,7 +718,7 @@ function renderPhaseComplete(){
   harder.push(`<img class="inline-coin" src="${COIN_IMG}" alt=""> ${next.reward} moedas por acerto`);
   app.innerHTML=`
     <section class="end-screen">
-      <div class="result-mascot">${mascot("animada","jump")}</div>
+      <div class="result-char">${playerCharacter("joinha","cheer")}</div>
       <span class="eyebrow">FASE ${done.id} CONCLUÍDA</span>
       <h1>${done.title} <em>completa!</em></h1>
       ${resultCards([
@@ -726,7 +745,7 @@ function renderEnd(){
   if(victory)finalizarCartas('vitoria');
   app.innerHTML=`
     <section class="end-screen">
-      <div class="result-mascot">${mascot(victory?"animada":"pensando",victory?"jump":"idle")}</div>
+      <div class="result-char">${playerCharacter(victory?"joinha":"forca",victory?"cheer":"talk")}</div>
       <span class="eyebrow">${victory?"TODAS AS FASES CONCLUÍDAS":"FIM DE JOGO · FASE "+game.mission}</span>
       <h1>${victory?"Você mandou <em>bem!</em>":"Não desista, <em>"+escapeHtml(player?.nickname||"agente")+"!</em>"}</h1>
       <p>${victory?`Você completou as ${PHASES.length} fases e agora sabe se proteger na internet. Que tal a fase bônus?`:"Suas vidas acabaram, mas cada erro ensinou algo novo. Tente esta fase de novo com as vidas cheias!"}</p>
@@ -954,8 +973,6 @@ document.getElementById("backBtn").onclick=goHome;
 soundBtn.onclick=toggleSound;
 narrateBtn.onclick=toggleNarrate;
 calmBtn.onclick=toggleCalm;
-// Logo do cabeçalho: a Bolhinha (o emoji 🫧 não existe no Windows 10)
-document.querySelector(".brand-mark").innerHTML=mascot("feliz");
 updateSoundBtn();updateNarrateBtn();updateCalm();
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape")closeModal();
